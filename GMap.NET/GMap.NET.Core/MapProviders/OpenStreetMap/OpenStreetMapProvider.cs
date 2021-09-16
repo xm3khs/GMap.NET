@@ -136,12 +136,11 @@ namespace GMap.NET.MapProviders
                         "/sm:kml/sm:Document/sm:Folder/sm:Placemark/sm:LineString/sm:coordinates",
                         xmlnsManager);
 
-                    var coordinates = coordNode.InnerText.Split('\n');
+                    string[] coordinates = coordNode?.InnerText.Split('\n');
 
                     if (coordinates != null && coordinates.Length > 0)
                     {
-                        ret = new MapRoute("Route");
-                        ret.Status = RouteStatusCode.OK;
+                        ret = new MapRoute("Route") { Status = RouteStatusCode.OK };
 
                         if (GMaps.Instance.UseRouteCache && cache)
                         {
@@ -150,17 +149,21 @@ namespace GMap.NET.MapProviders
 
                         foreach (string coordinate in coordinates)
                         {
-                            if (coordinate != string.Empty)
+                            if (coordinate == string.Empty)
                             {
-                                var xy = coordinate.Split(',');
-
-                                if (xy.Length == 2)
-                                {
-                                    double lat = double.Parse(xy[1], CultureInfo.InvariantCulture);
-                                    double lng = double.Parse(xy[0], CultureInfo.InvariantCulture);
-                                    ret.Points.Add(new PointLatLng(lat, lng));
-                                }
+                                continue;
                             }
+
+                            string[] xy = coordinate.Split(',');
+
+                            if (xy.Length != 2)
+                            {
+                                continue;
+                            }
+
+                            double lat = double.Parse(xy[1], CultureInfo.InvariantCulture);
+                            double lng = double.Parse(xy[0], CultureInfo.InvariantCulture);
+                            ret.Points.Add(new PointLatLng(lat, lng));
                         }
 
                         var travelTimeNode = xmldoc.SelectSingleNode("/sm:kml/sm:Document/sm:traveltime", xmlnsManager);
@@ -175,10 +178,10 @@ namespace GMap.NET.MapProviders
 
                         if (instructionsNode != null && instructionsNode.InnerText.Length > 0)
                         {
-                            var instructions = instructionsNode.InnerText.Split(new string[1] {"<br>"},
+                            string[] instructions = instructionsNode.InnerText.Split(new string[1] {"<br>"},
                                 StringSplitOptions.RemoveEmptyEntries);
 
-                            if (instructions != null && instructions.Length > 0)
+                            if (instructions.Length > 0)
                             {
                                 foreach (string item in instructions)
                                 {
@@ -383,27 +386,35 @@ namespace GMap.NET.MapProviders
 
                                 foreach (XmlNode n in l)
                                 {
+                                    if (n.Attributes == null)
+                                    {
+                                        continue;
+                                    }
+
                                     var nn = n.Attributes["place_rank"];
 
-                                    int rank;
-                                    if (nn != null && int.TryParse(nn.Value, out rank))
+                                    if (nn != null && int.TryParse(nn.Value, out int rank))
                                     {
                                         if (rank < MinExpectedRank)
                                             continue;
                                     }
 
                                     nn = n.Attributes["lat"];
-                                    if (nn != null)
+                                    if (nn == null)
                                     {
-                                        double lat = double.Parse(nn.Value, CultureInfo.InvariantCulture);
-
-                                        nn = n.Attributes["lon"];
-                                        if (nn != null)
-                                        {
-                                            double lng = double.Parse(nn.Value, CultureInfo.InvariantCulture);
-                                            pointList.Add(new PointLatLng(lat, lng));
-                                        }
+                                        continue;
                                     }
+
+                                    double lat = double.Parse(nn.Value, CultureInfo.InvariantCulture);
+
+                                    nn = n.Attributes["lon"];
+                                    if (nn == null)
+                                    {
+                                        continue;
+                                    }
+
+                                    double lng = double.Parse(nn.Value, CultureInfo.InvariantCulture);
+                                    pointList.Add(new PointLatLng(lat, lng));
                                 }
 
                                 status = GeoCoderStatusCode.OK;
