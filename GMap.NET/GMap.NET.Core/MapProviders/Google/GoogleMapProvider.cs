@@ -19,7 +19,7 @@ namespace GMap.NET.MapProviders
         public GoogleMapProviderBase()
         {
             MaxZoom = null;
-            RefererUrl = string.Format("https://maps.{0}/", Server);
+            RefererUrl = $"https://maps.{Server}/";
             Copyright = string.Format("©{0} Google - Map data ©{0} Tele Atlas, Imagery ©{0} TerraMetrics",
                 DateTime.Today.Year);
         }
@@ -220,7 +220,7 @@ namespace GMap.NET.MapProviders
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine("TryCorrectGoogleVersions failed: " + ex.ToString());
+                    Debug.WriteLine($"TryCorrectGoogleVersions failed: {ex}");
                 }
             }
         }
@@ -679,8 +679,6 @@ namespace GMap.NET.MapProviders
                                                             .long_name;
                                                     }
                                                         break;
-                                                    default:
-                                                        break;
                                                 }
                                             }
                                         }
@@ -691,17 +689,13 @@ namespace GMap.NET.MapProviders
                             }
                         }
                     }
-                    else
-                    {
-                        Debug.WriteLine("GetPlacemarkFromReverseGeocoderUrl: " + geoResult.status);
-                    }
                 }
             }
             catch (Exception ex)
             {
                 status = GeoCoderStatusCode.EXCEPTION_IN_CODE;
                 placemarkList = null;
-                Debug.WriteLine("GetPlacemarkReverseGeocoderUrl: " + ex.ToString());
+                Debug.WriteLine($"GetPlacemarkReverseGeocoderUrl: {ex}");
             }
 
             return status;
@@ -821,7 +815,7 @@ namespace GMap.NET.MapProviders
 
         #region -- internals --
 
-        // The Coogle Directions API: http://tinyurl.com/6vv4cac
+        // The Google Directions API: http://tinyurl.com/6vv4cac
 
         string MakeDirectionsUrl(PointLatLng start, PointLatLng end, string language, bool avoidHighways,
             bool avoidTolls, bool walkingMode, bool sensor, bool metric)
@@ -875,13 +869,7 @@ namespace GMap.NET.MapProviders
             string wpLatLng = string.Empty;
             int i = 0;
 
-            foreach (var wp in wayPoints)
-            {
-                wpLatLng += string.Format(CultureInfo.InvariantCulture,
-                    i++ == 0 ? "{0},{1}" : "|{0},{1}",
-                    wp.Lat,
-                    wp.Lng);
-            }
+            wpLatLng = wayPoints.Aggregate(wpLatLng, (current, wp) => current + string.Format(CultureInfo.InvariantCulture, i++ == 0 ? "{0},{1}" : "|{0},{1}", wp.Lat, wp.Lng));
 
             return string.Format(CultureInfo.InvariantCulture,
                 DirectionUrlFormatWaypoint,
@@ -909,12 +897,7 @@ namespace GMap.NET.MapProviders
             string wpLatLng = string.Empty;
             int i = 0;
 
-            foreach (string wp in wayPoints)
-            {
-                wpLatLng += string.Format(CultureInfo.InvariantCulture,
-                    i++ == 0 ? "{0}" : "|{0}",
-                    wp.Replace(' ', '+'));
-            }
+            wpLatLng = wayPoints.Aggregate(wpLatLng, (current, wp) => current + string.Format(CultureInfo.InvariantCulture, i++ == 0 ? "{0}" : "|{0}", wp.Replace(' ', '+')));
 
             return string.Format(CultureInfo.InvariantCulture,
                 DirectionUrlFormatWaypointStr,
@@ -937,14 +920,14 @@ namespace GMap.NET.MapProviders
             try
             {
                 string kml = GMaps.Instance.UseDirectionsCache
-                    ? Cache.Instance.GetContent(url, CacheType.DirectionsCache, TimeSpan.FromHours(TTLCache)) 
+                    ? Cache.Instance.GetContent(url, CacheType.DirectionsCache, TimeSpan.FromHours(TTLCache))
                     : string.Empty;
                 bool cache = false;
 
                 if (string.IsNullOrEmpty(kml))
                 {
-                    kml = GetContentUsingHttp(!string.IsNullOrEmpty(ClientId) ? GetSignedUri(url) : 
-                        (!string.IsNullOrEmpty(ApiKey) ? url + "&key=" + ApiKey : url));
+                    kml = GetContentUsingHttp(!string.IsNullOrEmpty(ClientId) ? GetSignedUri(url) :
+                        !string.IsNullOrEmpty(ApiKey) ? url + "&key=" + ApiKey : url);
 
                     if (!string.IsNullOrEmpty(kml))
                     {
@@ -980,11 +963,11 @@ namespace GMap.NET.MapProviders
                                     Debug.WriteLine("copyrights: " + direction.Copyrights);
                                 }
 
-                                if (directionResult.routes[0].overview_polyline != null && 
+                                if (directionResult.routes[0].overview_polyline != null &&
                                     directionResult.routes[0].overview_polyline.points != null)
                                 {
-                                    direction.Route = new List<PointLatLng>();                                    
-                                    PureProjection.PolylineDecode(direction.Route, 
+                                    direction.Route = new List<PointLatLng>();
+                                    PureProjection.PolylineDecode(direction.Route,
                                         directionResult.routes[0].overview_polyline.points);
                                 }
 
@@ -999,15 +982,14 @@ namespace GMap.NET.MapProviders
                                     direction.Distance = string.Join(", ", directionResult.routes[0].legs.Where(x => x.distance != null).Select(x => x.distance.text));
                                     Debug.WriteLine("distance: " + direction.Distance);
 
-                                    direction.DistanceValue = 
-                                        (uint)directionResult.routes[0].legs.Sum(x => x.distance?.value ?? 0);
+                                    direction.DistanceValue = (uint)directionResult.routes[0].legs.Sum(x => x.distance?.value ?? 0);
                                     Debug.WriteLine("value: " + direction.DistanceValue);
 
                                     if (directionResult.routes[0].legs[0].start_location != null)
                                     {
-                                        direction.StartLocation.Lat = 
+                                        direction.StartLocation.Lat =
                                             directionResult.routes[0].legs[0].start_location.lat;
-                                        direction.StartLocation.Lng = 
+                                        direction.StartLocation.Lng =
                                             directionResult.routes[0].legs[0].start_location.lng;
                                     }
 
@@ -1033,43 +1015,42 @@ namespace GMap.NET.MapProviders
 
                                     foreach (var leg in directionResult.routes[0].legs)
                                     {
-                                        for (int i = 0; i < leg.steps.Count; i++)
+                                        foreach (var step in leg.steps)
                                         {
-                                            var step = new GDirectionStep();
+                                            var directionStep = new GDirectionStep();
                                             Debug.WriteLine("----------------------");
 
-                                            step.TravelMode = leg.steps[i].travel_mode;
-                                            Debug.WriteLine("travel_mode: " + step.TravelMode);
+                                            directionStep.TravelMode = step.travel_mode;
+                                            Debug.WriteLine("travel_mode: " + directionStep.TravelMode);
 
-                                            step.Duration = leg.steps[i].duration.text;
-                                            Debug.WriteLine("duration: " + step.Duration);
+                                            directionStep.Duration = step.duration.text;
+                                            Debug.WriteLine("duration: " + directionStep.Duration);
 
-                                            step.Distance = leg.steps[i].distance.text;
-                                            Debug.WriteLine("distance: " + step.Distance);
+                                            directionStep.Distance = step.distance.text;
+                                            Debug.WriteLine("distance: " + directionStep.Distance);
 
-                                            step.HtmlInstructions = leg.steps[i].html_instructions;
-                                            Debug.WriteLine("html_instructions: " + step.HtmlInstructions);
+                                            directionStep.HtmlInstructions = step.html_instructions;
+                                            Debug.WriteLine("html_instructions: " + directionStep.HtmlInstructions);
 
-                                            if (leg.steps[i].start_location != null)
+                                            if (step.start_location != null)
                                             {
-                                                step.StartLocation.Lat = leg.steps[i].start_location.lat;
-                                                step.StartLocation.Lng = leg.steps[i].start_location.lng;
+                                                directionStep.StartLocation.Lat = step.start_location.lat;
+                                                directionStep.StartLocation.Lng = step.start_location.lng;
                                             }
 
-                                            if (leg.steps[i].end_location != null)
+                                            if (step.end_location != null)
                                             {
-                                                step.EndLocation.Lat = leg.steps[i].end_location.lat;
-                                                step.EndLocation.Lng = leg.steps[i].end_location.lng;
+                                                directionStep.EndLocation.Lat = step.end_location.lat;
+                                                directionStep.EndLocation.Lng = step.end_location.lng;
                                             }
 
-                                            if (leg.steps[i].polyline != null && leg.steps[i].polyline.points != null)
+                                            if (step.polyline?.points != null)
                                             {
-                                                step.Points = new List<PointLatLng>();
-                                                PureProjection.PolylineDecode(step.Points, 
-                                                    leg.steps[i].polyline.points);
+                                                directionStep.Points = new List<PointLatLng>();
+                                                PureProjection.PolylineDecode(directionStep.Points, step.polyline.points);
                                             }
 
-                                            direction.Steps.Add(step);
+                                            direction.Steps.Add(directionStep);
                                         }
                                     }
                                 }
@@ -1087,17 +1068,10 @@ namespace GMap.NET.MapProviders
             return ret;
         }
 
-        static readonly string DirectionUrlFormatStr =
-            "https://maps.{7}/maps/api/directions/json?origin={0}&destination={1}&sensor={2}&language={3}{4}{5}{6}";
-
-        static readonly string DirectionUrlFormatPoint =
-            "https://maps.{9}/maps/api/directions/json?origin={0},{1}&destination={2},{3}&sensor={4}&language={5}{6}{7}{8}";
-
-        static readonly string DirectionUrlFormatWaypoint =
-            "https://maps.{8}/maps/api/directions/json?origin={0},{1}&waypoints={2}&destination={9},{10}&sensor={3}&language={4}{5}{6}{7}";
-
-        static readonly string DirectionUrlFormatWaypointStr =
-            "https://maps.{7}/maps/api/directions/json?origin={0}&waypoints={1}&destination={8}&sensor={2}&language={3}{4}{5}{6}";
+        private const string DirectionUrlFormatStr = "https://maps.{7}/maps/api/directions/json?origin={0}&destination={1}&sensor={2}&language={3}{4}{5}{6}";
+        private const string DirectionUrlFormatPoint = "https://maps.{9}/maps/api/directions/json?origin={0},{1}&destination={2},{3}&sensor={4}&language={5}{6}{7}{8}";
+        private const string DirectionUrlFormatWaypoint = "https://maps.{8}/maps/api/directions/json?origin={0},{1}&waypoints={2}&destination={9},{10}&sensor={3}&language={4}{5}{6}{7}";
+        private const string DirectionUrlFormatWaypointStr = "https://maps.{7}/maps/api/directions/json?origin={0}&waypoints={1}&destination={8}&sensor={2}&language={3}{4}{5}{6}";
 
         #endregion
 
@@ -1264,9 +1238,9 @@ namespace GMap.NET.MapProviders
 
         string GetSignature(Uri uri)
         {
-            var encodedPathQuery = Encoding.ASCII.GetBytes(uri.LocalPath + uri.Query);
+            byte[] encodedPathQuery = Encoding.ASCII.GetBytes(uri.LocalPath + uri.Query);
             var hashAlgorithm = new HMACSHA1(_privateKeyBytes);
-            var hashed = hashAlgorithm.ComputeHash(encodedPathQuery);
+            byte[] hashed = hashAlgorithm.ComputeHash(encodedPathQuery);
             return Convert.ToBase64String(hashed).Replace("+", "-").Replace("/", "_");
         }
 

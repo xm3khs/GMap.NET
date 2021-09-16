@@ -547,13 +547,15 @@ namespace GMap.NET.WindowsForms
             set
             {
                 _colorMatrix = value;
-                if (GMapProvider.TileImageProxy != null && GMapProvider.TileImageProxy is GMapImageProxy)
+                if (GMapProvider.TileImageProxy == null || !(GMapProvider.TileImageProxy is GMapImageProxy))
                 {
-                    (GMapProvider.TileImageProxy as GMapImageProxy).ColorMatrix = value;
-                    if (Core.IsStarted)
-                    {
-                        ReloadMap();
-                    }
+                    return;
+                }
+
+                ((GMapImageProxy)GMapProvider.TileImageProxy).ColorMatrix = value;
+                if (Core.IsStarted)
+                {
+                    ReloadMap();
                 }
             }
         }
@@ -897,41 +899,42 @@ namespace GMap.NET.WindowsForms
 
             foreach (var o in Overlays)
             {
-                if (overlayId == null && o.IsZoomSignificant || o.Id == overlayId)
+                if (((overlayId != null || !o.IsZoomSignificant) && o.Id != overlayId) || !o.IsVisibile || o.Routes.Count <= 0)
                 {
-                    if (o.IsVisibile && o.Routes.Count > 0)
+                    continue;
+                }
+
+                foreach (var route in o.Routes)
+                {
+                    if (!route.IsVisible || !route.From.HasValue || !route.To.HasValue)
                     {
-                        foreach (var route in o.Routes)
+                        continue;
+                    }
+
+                    foreach (var p in route.Points)
+                    {
+                        // left
+                        if (p.Lng < left)
                         {
-                            if (route.IsVisible && route.From.HasValue && route.To.HasValue)
-                            {
-                                foreach (var p in route.Points)
-                                {
-                                    // left
-                                    if (p.Lng < left)
-                                    {
-                                        left = p.Lng;
-                                    }
+                            left = p.Lng;
+                        }
 
-                                    // top
-                                    if (p.Lat > top)
-                                    {
-                                        top = p.Lat;
-                                    }
+                        // top
+                        if (p.Lat > top)
+                        {
+                            top = p.Lat;
+                        }
 
-                                    // right
-                                    if (p.Lng > right)
-                                    {
-                                        right = p.Lng;
-                                    }
+                        // right
+                        if (p.Lng > right)
+                        {
+                            right = p.Lng;
+                        }
 
-                                    // bottom
-                                    if (p.Lat < bottom)
-                                    {
-                                        bottom = p.Lat;
-                                    }
-                                }
-                            }
+                        // bottom
+                        if (p.Lat < bottom)
+                        {
+                            bottom = p.Lat;
                         }
                     }
                 }
@@ -960,37 +963,39 @@ namespace GMap.NET.WindowsForms
             double right = double.MinValue;
             double bottom = double.MaxValue;
 
-            if (route.From.HasValue && route.To.HasValue)
+            if (!route.From.HasValue || !route.To.HasValue)
             {
-                foreach (var p in route.Points)
+                return null;
+            }
+
+            foreach (var p in route.Points)
+            {
+                // left
+                if (p.Lng < left)
                 {
-                    // left
-                    if (p.Lng < left)
-                    {
-                        left = p.Lng;
-                    }
-
-                    // top
-                    if (p.Lat > top)
-                    {
-                        top = p.Lat;
-                    }
-
-                    // right
-                    if (p.Lng > right)
-                    {
-                        right = p.Lng;
-                    }
-
-                    // bottom
-                    if (p.Lat < bottom)
-                    {
-                        bottom = p.Lat;
-                    }
+                    left = p.Lng;
                 }
 
-                ret = RectLatLng.FromLTRB(left, top, right, bottom);
+                // top
+                if (p.Lat > top)
+                {
+                    top = p.Lat;
+                }
+
+                // right
+                if (p.Lng > right)
+                {
+                    right = p.Lng;
+                }
+
+                // bottom
+                if (p.Lat < bottom)
+                {
+                    bottom = p.Lat;
+                }
             }
+
+            ret = RectLatLng.FromLTRB(left, top, right, bottom);
 
             return ret;
         }
@@ -1001,7 +1006,7 @@ namespace GMap.NET.WindowsForms
         /// <returns></returns>
         public Image ToImage()
         {
-            Image ret = null;
+            Image ret;
 
             bool r = ForceDoubleBuffer;
             try
@@ -1020,15 +1025,11 @@ namespace GMap.NET.WindowsForms
                 {
                     using (var frame = _backBuffer.Clone() as Bitmap)
                     {
-                        frame.Save(ms, ImageFormat.Png);
+                        frame?.Save(ms, ImageFormat.Png);
                     }
 
                     ret = Image.FromStream(ms);
                 }
-            }
-            catch (Exception)
-            {
-                throw;
             }
             finally
             {
@@ -1049,20 +1050,22 @@ namespace GMap.NET.WindowsForms
         /// <param name="y"></param>
         public void Offset(int x, int y)
         {
-            if (IsHandleCreated)
+            if (!IsHandleCreated)
             {
-                if (IsRotated)
-                {
-                    var p = new[] { new Point(x, y) };
-                    _rotationMatrixInvert.TransformVectors(p);
-                    x = p[0].X;
-                    y = p[0].Y;
-                }
-
-                Core.DragOffset(new GPoint(x, y));
-
-                ForceUpdateOverlays();
+                return;
             }
+
+            if (IsRotated)
+            {
+                var p = new[] { new Point(x, y) };
+                _rotationMatrixInvert.TransformVectors(p);
+                x = p[0].X;
+                y = p[0].Y;
+            }
+
+            Core.DragOffset(new GPoint(x, y));
+
+            ForceUpdateOverlays();
         }
 
         /// <summary>
@@ -1084,10 +1087,7 @@ namespace GMap.NET.WindowsForms
             double dPhi = Math.Log(Math.Tan(endLat / 2.0 + Math.PI / 4.0) / Math.Tan(startLat / 2.0 + Math.PI / 4.0));
             if (Math.Abs(dLong) > Math.PI)
             {
-                if (dLong > 0.0)
-                    dLong = -(2.0 * Math.PI - dLong);
-                else
-                    dLong = 2.0 * Math.PI + dLong;
+                dLong = dLong > 0.0 ? -(2.0 * Math.PI - dLong) : 2.0 * Math.PI + dLong;
             }
 
             return Math.Round((degrees(Math.Atan2(dLong, dPhi)) + 360.0) % 360.0, 2);
@@ -1131,37 +1131,43 @@ namespace GMap.NET.WindowsForms
             {
                 base.OnLoad(e);
 
-                if (!IsDesignerHosted)
+                if (IsDesignerHosted)
                 {
-                    //MethodInvoker m = delegate
-                    //{
-                    //   Thread.Sleep(444);
-
-                    //OnSizeChanged(null);
-
-                    if (_lazyEvents)
-                    {
-                        _lazyEvents = false;
-
-                        if (_lazySetZoomToFitRect.HasValue)
-                        {
-                            SetZoomToFitRect(_lazySetZoomToFitRect.Value);
-                            _lazySetZoomToFitRect = null;
-                        }
-                    }
-
-                    Core.OnMapOpen().ProgressChanged += InvalidatorEngage;
-                    ForceUpdateOverlays();
-                    //};
-                    //this.BeginInvoke(m);
+                    return;
                 }
+
+                //MethodInvoker m = delegate
+                //{
+                //   Thread.Sleep(444);
+
+                //   OnSizeChanged(null);
+
+                if (_lazyEvents)
+                {
+                    _lazyEvents = false;
+
+                    if (_lazySetZoomToFitRect.HasValue)
+                    {
+                        SetZoomToFitRect(_lazySetZoomToFitRect.Value);
+                        _lazySetZoomToFitRect = null;
+                    }
+                }
+
+                Core.OnMapOpen().ProgressChanged += InvalidatorEngage;
+                ForceUpdateOverlays();
+                //};
+                //this.BeginInvoke(m);
             }
             catch (Exception ex)
             {
                 if (OnExceptionThrown != null)
+                {
                     OnExceptionThrown.Invoke(ex);
+                }
                 else
+                {
                     throw;
+                }
             }
         }
 
@@ -1171,29 +1177,37 @@ namespace GMap.NET.WindowsForms
             {
                 base.OnCreateControl();
 
-                if (!IsDesignerHosted)
+                if (IsDesignerHosted)
                 {
-                    var f = ParentForm;
-                    if (f != null)
-                    {
-                        while (f.ParentForm != null)
-                        {
-                            f = f.ParentForm;
-                        }
+                    return;
+                }
 
-                        if (f != null)
-                        {
-                            f.FormClosing += ParentForm_FormClosing;
-                        }
-                    }
+                var f = ParentForm;
+                if (f == null)
+                {
+                    return;
+                }
+
+                while (f.ParentForm != null)
+                {
+                    f = f.ParentForm;
+                }
+
+                if (f != null)
+                {
+                    f.FormClosing += ParentForm_FormClosing;
                 }
             }
             catch (Exception ex)
             {
                 if (OnExceptionThrown != null)
+                {
                     OnExceptionThrown.Invoke(ex);
+                }
                 else
+                {
                     throw;
+                }
             }
         }
 
@@ -1267,9 +1281,13 @@ namespace GMap.NET.WindowsForms
             catch (Exception ex)
             {
                 if (OnExceptionThrown != null)
+                {
                     OnExceptionThrown.Invoke(ex);
+                }
                 else
+                {
                     throw;
+                }
             }
         }
 
@@ -1348,7 +1366,7 @@ namespace GMap.NET.WindowsForms
 
         void DrawMap(Graphics g)
         {
-            if (Core.UpdatingBounds || MapProvider == EmptyProvider.Instance || MapProvider == null)
+            if (Core.UpdatingBounds || MapProvider == null || Equals(MapProvider, EmptyProvider.Instance))
             {
                 Debug.WriteLine("Core.updatingBounds");
                 return;
@@ -1387,60 +1405,63 @@ namespace GMap.NET.WindowsForms
                             {
                                 // render tile
                                 {
-                                    foreach (GMapImage img in t.Overlays)
+                                    foreach (var pureImage in t.Overlays)
                                     {
-                                        if (img != null && img.Img != null)
+                                        var img = (GMapImage)pureImage;
+                                        if (img?.Img == null)
                                         {
-                                            if (!found)
-                                                found = true;
+                                            continue;
+                                        }
 
-                                            if (!img.IsParent)
+                                        if (!found)
+                                            found = true;
+
+                                        if (!img.IsParent)
+                                        {
+                                            if (!_mapRenderTransform.HasValue && !IsRotated)
                                             {
-                                                if (!_mapRenderTransform.HasValue && !IsRotated)
-                                                {
-                                                    g.DrawImage(img.Img,
-                                                        Core.TileRect.X,
-                                                        Core.TileRect.Y,
-                                                        Core.TileRect.Width,
-                                                        Core.TileRect.Height);
-                                                }
-                                                else
-                                                {
-                                                    g.DrawImage(img.Img,
-                                                        new Rectangle((int)Core.TileRect.X,
-                                                            (int)Core.TileRect.Y,
-                                                            (int)Core.TileRect.Width,
-                                                            (int)Core.TileRect.Height),
-                                                        0,
-                                                        0,
-                                                        Core.TileRect.Width,
-                                                        Core.TileRect.Height,
-                                                        GraphicsUnit.Pixel,
-                                                        _tileFlipXYAttributes);
-                                                }
+                                                g.DrawImage(img.Img,
+                                                    Core.TileRect.X,
+                                                    Core.TileRect.Y,
+                                                    Core.TileRect.Width,
+                                                    Core.TileRect.Height);
                                             }
                                             else
                                             {
-                                                // TODO: move calculations to loader thread
-                                                var srcRect = new RectangleF(
-                                                    img.Xoff * (img.Img.Width / img.Ix),
-                                                    img.Yoff * (img.Img.Height / img.Ix),
-                                                    img.Img.Width / img.Ix,
-                                                    img.Img.Height / img.Ix);
-                                                var dst = new Rectangle((int)Core.TileRect.X,
-                                                    (int)Core.TileRect.Y,
-                                                    (int)Core.TileRect.Width,
-                                                    (int)Core.TileRect.Height);
-
                                                 g.DrawImage(img.Img,
-                                                    dst,
-                                                    srcRect.X,
-                                                    srcRect.Y,
-                                                    srcRect.Width,
-                                                    srcRect.Height,
+                                                    new Rectangle((int)Core.TileRect.X,
+                                                        (int)Core.TileRect.Y,
+                                                        (int)Core.TileRect.Width,
+                                                        (int)Core.TileRect.Height),
+                                                    0,
+                                                    0,
+                                                    Core.TileRect.Width,
+                                                    Core.TileRect.Height,
                                                     GraphicsUnit.Pixel,
                                                     _tileFlipXYAttributes);
                                             }
+                                        }
+                                        else
+                                        {
+                                            // TODO: move calculations to loader thread
+                                            var srcRect = new RectangleF(
+                                                img.Xoff * (img.Img.Width / img.Ix),
+                                                img.Yoff * (img.Img.Height / img.Ix),
+                                                img.Img.Width / img.Ix,
+                                                img.Img.Height / img.Ix);
+                                            var dst = new Rectangle((int)Core.TileRect.X,
+                                                (int)Core.TileRect.Y,
+                                                (int)Core.TileRect.Width,
+                                                (int)Core.TileRect.Height);
+
+                                            g.DrawImage(img.Img,
+                                                dst,
+                                                srcRect.X,
+                                                srcRect.Y,
+                                                srcRect.Width,
+                                                srcRect.Height,
+                                                GraphicsUnit.Pixel,
+                                                _tileFlipXYAttributes);
                                         }
                                     }
                                 }
@@ -1468,33 +1489,36 @@ namespace GMap.NET.WindowsForms
 
                                     // render tile 
                                     {
-                                        foreach (GMapImage img in parentTile.Overlays)
+                                        foreach (var pureImage in parentTile.Overlays)
                                         {
-                                            if (img != null && img.Img != null && !img.IsParent)
+                                            var img = (GMapImage)pureImage;
+                                            if (img?.Img == null || img.IsParent)
                                             {
-                                                if (!found)
-                                                    found = true;
-
-                                                var srcRect = new RectangleF(
-                                                    xOff * (img.Img.Width / ix),
-                                                    yOff * (img.Img.Height / ix),
-                                                    img.Img.Width / ix,
-                                                    img.Img.Height / ix);
-                                                var dst = new Rectangle((int)Core.TileRect.X,
-                                                    (int)Core.TileRect.Y,
-                                                    (int)Core.TileRect.Width,
-                                                    (int)Core.TileRect.Height);
-
-                                                g.DrawImage(img.Img,
-                                                    dst,
-                                                    srcRect.X,
-                                                    srcRect.Y,
-                                                    srcRect.Width,
-                                                    srcRect.Height,
-                                                    GraphicsUnit.Pixel,
-                                                    _tileFlipXYAttributes);
-                                                g.FillRectangle(_selectedAreaFill, dst);
+                                                continue;
                                             }
+
+                                            if (!found)
+                                                found = true;
+
+                                            var srcRect = new RectangleF(
+                                                xOff * (img.Img.Width / ix),
+                                                yOff * (img.Img.Height / ix),
+                                                img.Img.Width / ix,
+                                                img.Img.Height / ix);
+                                            var dst = new Rectangle((int)Core.TileRect.X,
+                                                (int)Core.TileRect.Y,
+                                                (int)Core.TileRect.Width,
+                                                (int)Core.TileRect.Height);
+
+                                            g.DrawImage(img.Img,
+                                                dst,
+                                                srcRect.X,
+                                                srcRect.Y,
+                                                srcRect.Width,
+                                                srcRect.Height,
+                                                GraphicsUnit.Pixel,
+                                                _tileFlipXYAttributes);
+                                            g.FillRectangle(_selectedAreaFill, dst);
                                         }
                                     }
                                 }
@@ -1700,9 +1724,13 @@ namespace GMap.NET.WindowsForms
             catch (Exception ex)
             {
                 if (OnExceptionThrown != null)
+                {
                     OnExceptionThrown.Invoke(ex);
+                }
                 else
+                {
                     throw;
+                }
             }
         }
 
@@ -1761,44 +1789,46 @@ namespace GMap.NET.WindowsForms
             }
             set
             {
-                if (Core.Bearing != value)
+                if (Core.Bearing == value)
                 {
-                    bool resize = Core.Bearing == 0;
-                    Core.Bearing = value;
+                    return;
+                }
 
-                    //if(VirtualSizeEnabled)
-                    //{
-                    // c.X += (Width - Core.vWidth) / 2;
-                    // c.Y += (Height - Core.vHeight) / 2;
-                    //}
+                bool resize = Core.Bearing == 0;
+                Core.Bearing = value;
 
-                    UpdateRotationMatrix();
+                //if(VirtualSizeEnabled)
+                //{
+                // c.X += (Width - Core.vWidth) / 2;
+                // c.Y += (Height - Core.vHeight) / 2;
+                //}
 
-                    if (value != 0 && value % 360 != 0)
+                UpdateRotationMatrix();
+
+                if (value != 0 && value % 360 != 0)
+                {
+                    Core.IsRotated = true;
+
+                    if (Core.TileRectBearing.Size == Core.TileRect.Size)
                     {
-                        Core.IsRotated = true;
-
-                        if (Core.TileRectBearing.Size == Core.TileRect.Size)
-                        {
-                            Core.TileRectBearing = Core.TileRect;
-                            Core.TileRectBearing.Inflate(1, 1);
-                        }
-                    }
-                    else
-                    {
-                        Core.IsRotated = false;
                         Core.TileRectBearing = Core.TileRect;
+                        Core.TileRectBearing.Inflate(1, 1);
                     }
+                }
+                else
+                {
+                    Core.IsRotated = false;
+                    Core.TileRectBearing = Core.TileRect;
+                }
 
-                    if (resize)
-                    {
-                        Core.OnMapSizeChanged(Width, Height);
-                    }
+                if (resize)
+                {
+                    Core.OnMapSizeChanged(Width, Height);
+                }
 
-                    if (!HoldInvalidation && Core.IsStarted)
-                    {
-                        ForceUpdateOverlays();
-                    }
+                if (!HoldInvalidation && Core.IsStarted)
+                {
+                    ForceUpdateOverlays();
                 }
             }
         }
@@ -1835,33 +1865,37 @@ namespace GMap.NET.WindowsForms
                 return;
             }
 
-            if (!IsDesignerHosted)
+            if (IsDesignerHosted)
             {
-                if (ForceDoubleBuffer)
-                {
-                    UpdateBackBuffer();
-                }
-
-                if (VirtualSizeEnabled)
-                {
-                    Core.OnMapSizeChanged(Core.VWidth, Core.VHeight);
-                }
-                else
-                {
-                    Core.OnMapSizeChanged(Width, Height);
-                }
-                //Core.currentRegion = new GRect(-50, -50, Core.Width + 50, Core.Height + 50);
-
-                if (Visible && IsHandleCreated && Core.IsStarted)
-                {
-                    if (IsRotated)
-                    {
-                        UpdateRotationMatrix();
-                    }
-
-                    ForceUpdateOverlays();
-                }
+                return;
             }
+
+            if (ForceDoubleBuffer)
+            {
+                UpdateBackBuffer();
+            }
+
+            if (VirtualSizeEnabled)
+            {
+                Core.OnMapSizeChanged(Core.VWidth, Core.VHeight);
+            }
+            else
+            {
+                Core.OnMapSizeChanged(Width, Height);
+            }
+            //Core.currentRegion = new GRect(-50, -50, Core.Width + 50, Core.Height + 50);
+
+            if (!Visible || !IsHandleCreated || !Core.IsStarted)
+            {
+                return;
+            }
+
+            if (IsRotated)
+            {
+                UpdateRotationMatrix();
+            }
+
+            ForceUpdateOverlays();
         }
 
         void UpdateBackBuffer()
@@ -1880,11 +1914,13 @@ namespace GMap.NET.WindowsForms
                 _backBuffer = null;
             }
 
-            if (_gxOff != null)
+            if (_gxOff == null)
             {
-                _gxOff.Dispose();
-                _gxOff = null;
+                return;
             }
+
+            _gxOff.Dispose();
+            _gxOff = null;
         }
 
         bool _isSelected;
@@ -1893,20 +1929,22 @@ namespace GMap.NET.WindowsForms
         {
             base.OnMouseDown(e);
 
-            if (!IsMouseOverMarker)
+            if (IsMouseOverMarker)
             {
-                if (e.Button == DragButton && CanDragMap)
-                {
-                    Core.MouseDown = ApplyRotationInversion(e.X, e.Y);
-                    Invalidate();
-                }
-                else if (!_isSelected)
-                {
-                    _isSelected = true;
-                    SelectedArea = RectLatLng.Empty;
-                    _selectionEnd = PointLatLng.Empty;
-                    _selectionStart = FromLocalToLatLng(e.X, e.Y);
-                }
+                return;
+            }
+
+            if (e.Button == DragButton && CanDragMap)
+            {
+                Core.MouseDown = ApplyRotationInversion(e.X, e.Y);
+                Invalidate();
+            }
+            else if (!_isSelected)
+            {
+                _isSelected = true;
+                SelectedArea = RectLatLng.Empty;
+                _selectionEnd = PointLatLng.Empty;
+                _selectionStart = FromLocalToLatLng(e.X, e.Y);
             }
         }
 
@@ -1931,12 +1969,9 @@ namespace GMap.NET.WindowsForms
 
                 Core.EndDrag();
 
-                if (BoundsOfMap.HasValue && !BoundsOfMap.Value.Contains(Position))
+                if (BoundsOfMap.HasValue && !BoundsOfMap.Value.Contains(Position) && Core.LastLocationInBounds.HasValue)
                 {
-                    if (Core.LastLocationInBounds.HasValue)
-                    {
-                        Position = Core.LastLocationInBounds.Value;
-                    }
+                    Position = Core.LastLocationInBounds.Value;
                 }
             }
             else
@@ -1948,14 +1983,14 @@ namespace GMap.NET.WindowsForms
 
                 if (!_selectionEnd.IsEmpty && !_selectionStart.IsEmpty)
                 {
-                    bool zoomtofit = false;
+                    bool zoomToFit = false;
 
                     if (!SelectedArea.IsEmpty && ModifierKeys == Keys.Shift)
                     {
-                        zoomtofit = SetZoomToFitRect(SelectedArea);
+                        zoomToFit = SetZoomToFitRect(SelectedArea);
                     }
 
-                    OnSelectionChange?.Invoke(SelectedArea, zoomtofit);
+                    OnSelectionChange?.Invoke(SelectedArea, zoomToFit);
                 }
                 else
                 {
@@ -1968,167 +2003,203 @@ namespace GMap.NET.WindowsForms
         {
             base.OnMouseClick(e);
 
-            if (!Core.IsDragging)
+            if (Core.IsDragging)
             {
-                bool overlayObjet = false;
+                return;
+            }
 
-                for (int i = Overlays.Count - 1; i >= 0; i--)
+            bool overlayObject = false;
+
+            for (int i = Overlays.Count - 1; i >= 0; i--)
+            {
+                var o = Overlays[i];
+
+                if (o == null || !o.IsVisibile || !o.IsHitTestVisible)
                 {
-                    var o = Overlays[i];
-
-                    if (o != null && o.IsVisibile && o.IsHitTestVisible)
-                    {
-                        foreach (var m in o.Markers)
-                        {
-                            if (m.IsVisible && m.IsHitTestVisible)
-                            {
-                                #region -- check --
-
-                                var rp = new GPoint(e.X, e.Y);
-                                if (!MobileMode)
-                                {
-                                    rp.OffsetNegative(Core.RenderOffset);
-                                }
-
-                                if (m.LocalArea.Contains((int)rp.X, (int)rp.Y))
-                                {
-                                    OnMarkerClick?.Invoke(m, e);
-                                    overlayObjet = true;
-                                    break;
-                                }
-
-                                #endregion
-                            }
-                        }
-
-                        foreach (var m in o.Routes)
-                        {
-                            if (m.IsVisible && m.IsHitTestVisible)
-                            {
-                                #region -- check --
-
-                                var rp = new GPoint(e.X, e.Y);
-                                if (!MobileMode)
-                                {
-                                    rp.OffsetNegative(Core.RenderOffset);
-                                }
-
-                                if (m.IsInside((int)rp.X, (int)rp.Y))
-                                {
-                                    OnRouteClick?.Invoke(m, e);
-                                    overlayObjet = true;
-                                    break;
-                                }
-
-                                #endregion
-                            }
-                        }
-
-                        foreach (var m in o.Polygons)
-                        {
-                            if (m.IsVisible && m.IsHitTestVisible)
-                            {
-                                #region -- check --
-
-                                if (m.IsInside(FromLocalToLatLng(e.X, e.Y)))
-                                {
-                                    OnPolygonClick?.Invoke(m, e);
-                                    overlayObjet = true;
-                                    break;
-                                }
-
-                                #endregion
-                            }
-                        }
-                    }
+                    continue;
                 }
 
-                if (!overlayObjet && Core.MouseDown != GPoint.Empty)
-                    OnMapClick?.Invoke(FromLocalToLatLng(e.X, e.Y), e);
-            }                       
+                foreach (var m in o.Markers)
+                {
+                    if (!m.IsVisible || !m.IsHitTestVisible)
+                    {
+                        continue;
+                    }
+
+                    #region -- check --
+
+                    var rp = new GPoint(e.X, e.Y);
+                    if (!MobileMode)
+                    {
+                        rp.OffsetNegative(Core.RenderOffset);
+                    }
+
+                    if (!m.LocalArea.Contains((int)rp.X, (int)rp.Y))
+                    {
+                        continue;
+                    }
+
+                    OnMarkerClick?.Invoke(m, e);
+                    overlayObject = true;
+                    break;
+
+                    #endregion
+                }
+
+                foreach (var m in o.Routes)
+                {
+                    if (!m.IsVisible || !m.IsHitTestVisible)
+                    {
+                        continue;
+                    }
+
+                    #region -- check --
+
+                    var rp = new GPoint(e.X, e.Y);
+                    if (!MobileMode)
+                    {
+                        rp.OffsetNegative(Core.RenderOffset);
+                    }
+
+                    if (!m.IsInside((int)rp.X, (int)rp.Y))
+                    {
+                        continue;
+                    }
+
+                    OnRouteClick?.Invoke(m, e);
+                    overlayObject = true;
+                    break;
+
+                    #endregion
+                }
+
+                foreach (var m in o.Polygons)
+                {
+                    if (!m.IsVisible || !m.IsHitTestVisible)
+                    {
+                        continue;
+                    }
+
+                    #region -- check --
+
+                    if (!m.IsInside(FromLocalToLatLng(e.X, e.Y)))
+                    {
+                        continue;
+                    }
+
+                    OnPolygonClick?.Invoke(m, e);
+                    overlayObject = true;
+                    break;
+
+                    #endregion
+                }
+            }
+
+            if (!overlayObject && Core.MouseDown != GPoint.Empty)
+            {
+                OnMapClick?.Invoke(FromLocalToLatLng(e.X, e.Y), e);
+            }
         }
 
         protected override void OnMouseDoubleClick(MouseEventArgs e)
         {
             base.OnMouseDoubleClick(e);
 
-            if (!Core.IsDragging)
+            if (Core.IsDragging)
             {
-                bool overlayObjet = false;
+                return;
+            }
 
-                for (int i = Overlays.Count - 1; i >= 0; i--)
+            bool overlayObject = false;
+
+            for (int i = Overlays.Count - 1; i >= 0; i--)
+            {
+                var o = Overlays[i];
+
+                if (o == null || !o.IsVisibile || !o.IsHitTestVisible)
                 {
-                    var o = Overlays[i];
-
-                    if (o != null && o.IsVisibile && o.IsHitTestVisible)
-                    {
-                        foreach (var m in o.Markers)
-                        {
-                            if (m.IsVisible && m.IsHitTestVisible)
-                            {
-                                #region -- check --
-
-                                var rp = new GPoint(e.X, e.Y);
-                                if (!MobileMode)
-                                {
-                                    rp.OffsetNegative(Core.RenderOffset);
-                                }
-
-                                if (m.LocalArea.Contains((int)rp.X, (int)rp.Y))
-                                {
-                                    OnMarkerDoubleClick?.Invoke(m, e);
-                                    overlayObjet = true;
-                                    break;
-                                }
-
-                                #endregion
-                            }
-                        }
-
-                        foreach (var m in o.Routes)
-                        {
-                            if (m.IsVisible && m.IsHitTestVisible)
-                            {
-                                #region -- check --
-
-                                var rp = new GPoint(e.X, e.Y);
-                                if (!MobileMode)
-                                {
-                                    rp.OffsetNegative(Core.RenderOffset);
-                                }
-
-                                if (m.IsInside((int)rp.X, (int)rp.Y))
-                                {
-                                    OnRouteDoubleClick?.Invoke(m, e);
-                                    overlayObjet = true;
-                                    break;
-                                }
-
-                                #endregion
-                            }
-                        }
-
-                        foreach (var m in o.Polygons)
-                        {
-                            if (m.IsVisible && m.IsHitTestVisible)
-                            {
-                                #region -- check --
-
-                                if (m.IsInside(FromLocalToLatLng(e.X, e.Y)))
-                                {
-                                    OnPolygonDoubleClick?.Invoke(m, e);
-                                    overlayObjet = true;
-                                    break;
-                                }
-
-                                #endregion
-                            }
-                        }
-                    }
+                    continue;
                 }
 
-                if (!overlayObjet && Core.MouseDown != GPoint.Empty)
-                    OnMapDoubleClick?.Invoke(FromLocalToLatLng(e.X, e.Y), e);
+                foreach (var m in o.Markers)
+                {
+                    if (!m.IsVisible || !m.IsHitTestVisible)
+                    {
+                        continue;
+                    }
+
+                    #region -- check --
+
+                    var rp = new GPoint(e.X, e.Y);
+                    if (!MobileMode)
+                    {
+                        rp.OffsetNegative(Core.RenderOffset);
+                    }
+
+                    if (!m.LocalArea.Contains((int)rp.X, (int)rp.Y))
+                    {
+                        continue;
+                    }
+
+                    OnMarkerDoubleClick?.Invoke(m, e);
+                    overlayObject = true;
+                    break;
+
+                    #endregion
+                }
+
+                foreach (var m in o.Routes)
+                {
+                    if (!m.IsVisible || !m.IsHitTestVisible)
+                    {
+                        continue;
+                    }
+
+                    #region -- check --
+
+                    var rp = new GPoint(e.X, e.Y);
+                    if (!MobileMode)
+                    {
+                        rp.OffsetNegative(Core.RenderOffset);
+                    }
+
+                    if (!m.IsInside((int)rp.X, (int)rp.Y))
+                    {
+                        continue;
+                    }
+
+                    OnRouteDoubleClick?.Invoke(m, e);
+                    overlayObject = true;
+                    break;
+
+                    #endregion
+                }
+
+                foreach (var m in o.Polygons)
+                {
+                    if (!m.IsVisible || !m.IsHitTestVisible)
+                    {
+                        continue;
+                    }
+
+                    #region -- check --
+
+                    if (!m.IsInside(FromLocalToLatLng(e.X, e.Y)))
+                    {
+                        continue;
+                    }
+
+                    OnPolygonDoubleClick?.Invoke(m, e);
+                    overlayObject = true;
+                    break;
+
+                    #endregion
+                }
+            }
+
+            if (!overlayObject && Core.MouseDown != GPoint.Empty)
+            {
+                OnMapDoubleClick?.Invoke(FromLocalToLatLng(e.X, e.Y), e);
             }
         }
 
@@ -2139,15 +2210,17 @@ namespace GMap.NET.WindowsForms
         {
             var ret = new GPoint(x, y);
 
-            if (IsRotated)
+            if (!IsRotated)
             {
-                var tt = new[] { new Point(x, y) };
-                _rotationMatrixInvert.TransformPoints(tt);
-                var f = tt[0];
-
-                ret.X = f.X;
-                ret.Y = f.Y;
+                return ret;
             }
+
+            var tt = new[] { new Point(x, y) };
+            _rotationMatrixInvert.TransformPoints(tt);
+            var f = tt[0];
+
+            ret.X = f.X;
+            ret.Y = f.Y;
 
             return ret;
         }
@@ -2159,15 +2232,17 @@ namespace GMap.NET.WindowsForms
         {
             var ret = new GPoint(x, y);
 
-            if (IsRotated)
+            if (!IsRotated)
             {
-                var tt = new[] { new Point(x, y) };
-                _rotationMatrix.TransformPoints(tt);
-                var f = tt[0];
-
-                ret.X = f.X;
-                ret.Y = f.Y;
+                return ret;
             }
+
+            var tt = new[] { new Point(x, y) };
+            _rotationMatrix.TransformPoints(tt);
+            var f = tt[0];
+
+            ret.X = f.X;
+            ret.Y = f.Y;
 
             return ret;
         }
@@ -2207,19 +2282,17 @@ namespace GMap.NET.WindowsForms
 
                 if (BoundsOfMap.HasValue && !BoundsOfMap.Value.Contains(Position))
                 {
-                    // ...
+                    return;
                 }
-                else
-                {
-                    Core.MouseCurrent = ApplyRotationInversion(e.X, e.Y);
-                    Core.Drag(Core.MouseCurrent);
-                    if (MobileMode || IsRotated)
-                    {
-                        ForceUpdateOverlays();
-                    }
 
-                    base.Invalidate();
+                Core.MouseCurrent = ApplyRotationInversion(e.X, e.Y);
+                Core.Drag(Core.MouseCurrent);
+                if (MobileMode || IsRotated)
+                {
+                    ForceUpdateOverlays();
                 }
+
+                base.Invalidate();
             }
             else
             {
@@ -2245,131 +2318,149 @@ namespace GMap.NET.WindowsForms
                     for (int i = Overlays.Count - 1; i >= 0; i--)
                     {
                         var o = Overlays[i];
-                        if (o != null && o.IsVisibile && o.IsHitTestVisible)
+                        if (o == null || !o.IsVisibile || !o.IsHitTestVisible)
                         {
-                            foreach (var m in o.Markers)
+                            continue;
+                        }
+
+                        foreach (var m in o.Markers)
+                        {
+                            if (!m.IsVisible || !m.IsHitTestVisible)
                             {
-                                if (m.IsVisible && m.IsHitTestVisible)
-                                {
-                                    #region -- check --
-
-                                    var rp = new GPoint(e.X, e.Y);
-                                    if (!MobileMode)
-                                    {
-                                        rp.OffsetNegative(Core.RenderOffset);
-                                    }
-
-                                    if (m.LocalArea.Contains((int)rp.X, (int)rp.Y))
-                                    {
-                                        if (!m.IsMouseOver)
-                                        {
-                                            SetCursorHandOnEnter();
-                                            m.IsMouseOver = true;
-                                            IsMouseOverMarker = true;
-
-                                            OnMarkerEnter?.Invoke(m);
-
-                                            Invalidate();
-                                        }
-                                    }
-                                    else if (m.IsMouseOver)
-                                    {
-                                        m.IsMouseOver = false;
-                                        IsMouseOverMarker = false;
-                                        RestoreCursorOnLeave();
-                                        OnMarkerLeave?.Invoke(m);
-
-                                        Invalidate();
-                                    }
-
-                                    #endregion
-                                }
+                                continue;
                             }
 
-                            foreach (var m in o.Routes)
+                            #region -- check --
+
+                            var rp = new GPoint(e.X, e.Y);
+                            if (!MobileMode)
                             {
-                                if (m.IsVisible && m.IsHitTestVisible)
-                                {
-                                    #region -- check --
-
-                                    var rp = new GPoint(e.X, e.Y);
-                                    if (!MobileMode)
-                                    {
-                                        rp.OffsetNegative(Core.RenderOffset);
-                                    }
-
-                                    if (m.IsInside((int)rp.X, (int)rp.Y))
-                                    {
-                                        if (!m.IsMouseOver)
-                                        {
-                                            SetCursorHandOnEnter();
-                                            m.IsMouseOver = true;
-                                            IsMouseOverRoute = true;
-
-                                            OnRouteEnter?.Invoke(m);
-
-                                            Invalidate();
-                                        }
-                                    }
-                                    else
-                                    {
-                                        if (m.IsMouseOver)
-                                        {
-                                            m.IsMouseOver = false;
-                                            IsMouseOverRoute = false;
-                                            RestoreCursorOnLeave();
-                                            OnRouteLeave?.Invoke(m);
-
-                                            Invalidate();
-                                        }
-                                    }
-
-                                    #endregion
-                                }
+                                rp.OffsetNegative(Core.RenderOffset);
                             }
 
-                            foreach (var m in o.Polygons)
+                            if (m.LocalArea.Contains((int)rp.X, (int)rp.Y))
                             {
-                                if (m.IsVisible && m.IsHitTestVisible)
+                                if (m.IsMouseOver)
                                 {
-                                    #region -- check --
-
-                                    var rp = new GPoint(e.X, e.Y);
-
-                                    if (!MobileMode)
-                                    {
-                                        rp.OffsetNegative(Core.RenderOffset);
-                                    }
-
-                                    if (m.IsInsideLocal((int)rp.X, (int)rp.Y))
-                                    {
-                                        if (!m.IsMouseOver)
-                                        {
-                                            SetCursorHandOnEnter();
-                                            m.IsMouseOver = true;
-                                            IsMouseOverPolygon = true;
-
-                                            OnPolygonEnter?.Invoke(m);
-
-                                            Invalidate();
-                                        }
-                                    }
-                                    else
-                                    {
-                                        if (m.IsMouseOver)
-                                        {
-                                            m.IsMouseOver = false;
-                                            IsMouseOverPolygon = false;
-                                            RestoreCursorOnLeave();
-                                            OnPolygonLeave?.Invoke(m);
-
-                                            Invalidate();
-                                        }
-                                    }
-
-                                    #endregion
+                                    continue;
                                 }
+
+                                SetCursorHandOnEnter();
+                                m.IsMouseOver = true;
+                                IsMouseOverMarker = true;
+
+                                OnMarkerEnter?.Invoke(m);
+
+                                Invalidate();
                             }
+                            else if (m.IsMouseOver)
+                            {
+                                m.IsMouseOver = false;
+                                IsMouseOverMarker = false;
+                                RestoreCursorOnLeave();
+                                OnMarkerLeave?.Invoke(m);
+
+                                Invalidate();
+                            }
+
+                            #endregion
+                        }
+
+                        foreach (var m in o.Routes)
+                        {
+                            if (!m.IsVisible || !m.IsHitTestVisible)
+                            {
+                                continue;
+                            }
+
+                            #region -- check --
+
+                            var rp = new GPoint(e.X, e.Y);
+                            if (!MobileMode)
+                            {
+                                rp.OffsetNegative(Core.RenderOffset);
+                            }
+
+                            if (m.IsInside((int)rp.X, (int)rp.Y))
+                            {
+                                if (m.IsMouseOver)
+                                {
+                                    continue;
+                                }
+
+                                SetCursorHandOnEnter();
+                                m.IsMouseOver = true;
+                                IsMouseOverRoute = true;
+
+                                OnRouteEnter?.Invoke(m);
+
+                                Invalidate();
+                            }
+                            else
+                            {
+                                if (!m.IsMouseOver)
+                                {
+                                    continue;
+                                }
+
+                                m.IsMouseOver = false;
+                                IsMouseOverRoute = false;
+                                RestoreCursorOnLeave();
+                                OnRouteLeave?.Invoke(m);
+
+                                Invalidate();
+                            }
+
+                            #endregion
+                        }
+
+                        foreach (var m in o.Polygons)
+                        {
+                            if (!m.IsVisible || !m.IsHitTestVisible)
+                            {
+                                continue;
+                            }
+
+                            #region -- check --
+
+                            var rp = new GPoint(e.X, e.Y);
+
+                            if (!MobileMode)
+                            {
+                                rp.OffsetNegative(Core.RenderOffset);
+                            }
+
+                            if (m.IsInsideLocal((int)rp.X, (int)rp.Y))
+                            {
+                                if (m.IsMouseOver)
+                                {
+                                    continue;
+                                }
+
+                                SetCursorHandOnEnter();
+                                m.IsMouseOver = true;
+                                IsMouseOverPolygon = true;
+
+                                OnPolygonEnter?.Invoke(m);
+
+                                Invalidate();
+                            }
+                            else
+                            {
+                                if (!m.IsMouseOver)
+                                {
+                                    continue;
+                                }
+
+                                m.IsMouseOver = false;
+                                IsMouseOverPolygon = false;
+                                RestoreCursorOnLeave();
+                                OnPolygonLeave?.Invoke(m);
+
+                                Invalidate();
+                            }
+
+                            #endregion
                         }
                     }
                 }
@@ -2383,22 +2474,26 @@ namespace GMap.NET.WindowsForms
 
         internal void RestoreCursorOnLeave()
         {
-            if (OverObjectCount <= 0 && _cursorBefore != null)
+            if (OverObjectCount > 0 || _cursorBefore == null)
             {
-                OverObjectCount = 0;
-                Cursor = _cursorBefore;
-                _cursorBefore = null;
+                return;
             }
+
+            OverObjectCount = 0;
+            Cursor = _cursorBefore;
+            _cursorBefore = null;
         }
 
         internal void SetCursorHandOnEnter()
         {
-            if (OverObjectCount <= 0 && Cursor != Cursors.Hand)
+            if (OverObjectCount > 0 || Cursor == Cursors.Hand)
             {
-                OverObjectCount = 0;
-                _cursorBefore = Cursor;
-                Cursor = Cursors.Hand;
+                return;
             }
+
+            OverObjectCount = 0;
+            _cursorBefore = Cursor;
+            Cursor = Cursors.Hand;
         }
 
         /// <summary>
@@ -2440,65 +2535,53 @@ namespace GMap.NET.WindowsForms
         {
             base.OnMouseWheel(e);
 
-            if (MouseWheelZoomEnabled && _mouseIn && (!IsMouseOverMarker || IgnoreMarkerOnMouseWheel) &&
-                !Core.IsDragging)
+            if (!MouseWheelZoomEnabled || !_mouseIn || (IsMouseOverMarker && !IgnoreMarkerOnMouseWheel) ||
+                Core.IsDragging)
             {
-                if (Core.MouseLastZoom.X != e.X && Core.MouseLastZoom.Y != e.Y)
-                {
-                    if (MouseWheelZoomType == MouseWheelZoomType.MousePositionAndCenter)
-                    {
-                        Core._position = FromLocalToLatLng(e.X, e.Y);
-                    }
-                    else if (MouseWheelZoomType == MouseWheelZoomType.ViewCenter)
-                    {
-                        Core._position = FromLocalToLatLng(Width / 2, Height / 2);
-                    }
-                    else if (MouseWheelZoomType == MouseWheelZoomType.MousePositionWithoutCenter)
-                    {
-                        Core._position = FromLocalToLatLng(e.X, e.Y);
-                    }
-
-                    Core.MouseLastZoom.X = e.X;
-                    Core.MouseLastZoom.Y = e.Y;
-                }
-
-                // set mouse position to map center
-                if (MouseWheelZoomType != MouseWheelZoomType.MousePositionWithoutCenter)
-                {
-                    if (!GMaps.Instance.IsRunningOnMono)
-                    {
-                        var p = PointToScreen(new Point(Width / 2, Height / 2));
-                        Stuff.SetCursorPos(p.X, p.Y);
-                    }
-                }
-
-                Core.MouseWheelZooming = true;
-
-                if (e.Delta > 0)
-                {
-                    if (!InvertedMouseWheelZooming)
-                    {
-                        Zoom = (int)Zoom + 1;
-                    }
-                    else
-                    {
-                        Zoom = (int)(Zoom + 0.99) - 1;
-                    }
-                }
-                else if (e.Delta < 0)
-                {
-                    if (!InvertedMouseWheelZooming)
-                    {
-                        Zoom = (int)(Zoom + 0.99) - 1;
-                    }
-                    else
-                    {
-                        Zoom = (int)Zoom + 1;
-                    }
-                }
-
-                Core.MouseWheelZooming = false;
+                return;
             }
+
+            if (Core.MouseLastZoom.X != e.X && Core.MouseLastZoom.Y != e.Y)
+            {
+                switch (MouseWheelZoomType)
+                {
+                    case MouseWheelZoomType.MousePositionAndCenter:
+                        Core._position = FromLocalToLatLng(e.X, e.Y);
+                        break;
+                    case MouseWheelZoomType.ViewCenter:
+                        Core._position = FromLocalToLatLng(Width / 2, Height / 2);
+                        break;
+                    case MouseWheelZoomType.MousePositionWithoutCenter:
+                        Core._position = FromLocalToLatLng(e.X, e.Y);
+                        break;
+                }
+
+                Core.MouseLastZoom.X = e.X;
+                Core.MouseLastZoom.Y = e.Y;
+            }
+
+            // set mouse position to map center
+            if (MouseWheelZoomType != MouseWheelZoomType.MousePositionWithoutCenter)
+            {
+                if (!GMaps.Instance.IsRunningOnMono)
+                {
+                    var p = PointToScreen(new Point(Width / 2, Height / 2));
+                    Stuff.SetCursorPos(p.X, p.Y);
+                }
+            }
+
+            Core.MouseWheelZooming = true;
+
+            if (e.Delta > 0)
+            {
+                Zoom = !InvertedMouseWheelZooming ? (int)Zoom + 1 : (int)(Zoom + 0.99) - 1;
+            }
+            else if (e.Delta < 0)
+            {
+                Zoom = !InvertedMouseWheelZooming ? (int)(Zoom + 0.99) - 1 : (int)Zoom + 1;
+            }
+
+            Core.MouseWheelZooming = false;
         }
 
         #endregion
@@ -2517,21 +2600,22 @@ namespace GMap.NET.WindowsForms
         ///     set current position using keywords
         /// </summary>
         /// <param name="keys"></param>
-        /// <returns>true if successfull</returns>
+        /// <returns>true if successful</returns>
         public GeoCoderStatusCode SetPositionByKeywords(string keys)
         {
             var status = GeoCoderStatusCode.UNKNOWN_ERROR;
-            var gp = MapProvider as GeocodingProvider;
+            var gp = MapProvider as GeocodingProvider ?? GMapProviders.OpenStreetMap;
 
             if (gp == null)
-                gp = GMapProviders.OpenStreetMap as GeocodingProvider;
-
-            if (gp != null)
             {
-                var pt = gp.GetPoint(keys.Replace("#", "%23"), out status);
+                return status;
+            }
 
-                if (status == GeoCoderStatusCode.OK && pt.HasValue)
-                    Position = pt.Value;
+            var pt = gp.GetPoint(keys.Replace("#", "%23"), out status);
+
+            if (status == GeoCoderStatusCode.OK && pt.HasValue)
+            {
+                Position = pt.Value;
             }
 
             return status;
@@ -2548,17 +2632,22 @@ namespace GMap.NET.WindowsForms
             point = new PointLatLng();
 
             var status = GeoCoderStatusCode.UNKNOWN_ERROR;
-            var gp = MapProvider as GeocodingProvider;
+
+            if (!(MapProvider is GeocodingProvider gp))
+            {
+                gp = GMapProviders.OpenStreetMap;
+            }
 
             if (gp == null)
-                gp = GMapProviders.OpenStreetMap as GeocodingProvider;
-
-            if (gp != null)
             {
-                var pt = gp.GetPoint(keys.Replace("#", "%23"), out status);
+                return status;
+            }
 
-                if (status == GeoCoderStatusCode.OK && pt.HasValue)
-                    point = pt.Value;
+            var pt = gp.GetPoint(keys.Replace("#", "%23"), out status);
+
+            if (status == GeoCoderStatusCode.OK && pt.HasValue)
+            {
+                point = pt.Value;
             }
 
             return status;
@@ -2593,21 +2682,23 @@ namespace GMap.NET.WindowsForms
                 y = (int)(Core.RenderOffset.Y + (y - Core.RenderOffset.Y) / _mapRenderTransform.Value);
             }
 
-            if (IsRotated)
+            if (!IsRotated)
             {
-                var tt = new[] { new Point(x, y) };
-                _rotationMatrixInvert.TransformPoints(tt);
-                var f = tt[0];
-
-                if (VirtualSizeEnabled)
-                {
-                    f.X += (Width - Core.VWidth) / 2;
-                    f.Y += (Height - Core.VHeight) / 2;
-                }
-
-                x = f.X;
-                y = f.Y;
+                return Core.FromLocalToLatLng(x, y);
             }
+
+            var tt = new[] { new Point(x, y) };
+            _rotationMatrixInvert.TransformPoints(tt);
+            var f = tt[0];
+
+            if (VirtualSizeEnabled)
+            {
+                f.X += (Width - Core.VWidth) / 2;
+                f.Y += (Height - Core.VHeight) / 2;
+            }
+
+            x = f.X;
+            y = f.Y;
 
             return Core.FromLocalToLatLng(x, y);
         }
@@ -2627,21 +2718,23 @@ namespace GMap.NET.WindowsForms
                 ret.Y = (int)(Core.RenderOffset.Y + (Core.RenderOffset.Y - ret.Y) * -_mapRenderTransform.Value);
             }
 
-            if (IsRotated)
+            if (!IsRotated)
             {
-                var tt = new[] { new Point((int)ret.X, (int)ret.Y) };
-                _rotationMatrix.TransformPoints(tt);
-                var f = tt[0];
-
-                if (VirtualSizeEnabled)
-                {
-                    f.X += (Width - Core.VWidth) / 2;
-                    f.Y += (Height - Core.VHeight) / 2;
-                }
-
-                ret.X = f.X;
-                ret.Y = f.Y;
+                return ret;
             }
+
+            var tt = new[] { new Point((int)ret.X, (int)ret.Y) };
+            _rotationMatrix.TransformPoints(tt);
+            var f = tt[0];
+
+            if (VirtualSizeEnabled)
+            {
+                f.X += (Width - Core.VWidth) / 2;
+                f.Y += (Height - Core.VHeight) / 2;
+            }
+
+            ret.X = f.X;
+            ret.Y = f.Y;
 
             return ret;
         }
@@ -2659,30 +2752,30 @@ namespace GMap.NET.WindowsForms
                 dlg.AddExtension = true;
                 dlg.DefaultExt = "gmdb";
                 dlg.ValidateNames = true;
-                dlg.Title = "GMap.NET: Export map to db, if file exsist only new data will be added";
+                dlg.Title = "GMap.NET: Export map to db, if file exist only new data will be added";
                 dlg.FileName = "DataExp";
                 dlg.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
                 dlg.Filter = "GMap.NET DB files (*.gmdb)|*.gmdb";
                 dlg.FilterIndex = 1;
                 dlg.RestoreDirectory = true;
 
-                if (dlg.ShowDialog() == DialogResult.OK)
+                if (dlg.ShowDialog() != DialogResult.OK)
                 {
-                    bool ok = GMaps.Instance.ExportToGMDB(dlg.FileName);
-                    if (ok)
-                    {
-                        MessageBox.Show("Complete!", "GMap.NET", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    }
-                    else
-                    {
-                        MessageBox.Show("Failed!", "GMap.NET", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    }
-
-                    return ok;
+                    return false;
                 }
-            }
 
-            return false;
+                bool ok = GMaps.Instance.ExportToGMDB(dlg.FileName);
+                if (ok)
+                {
+                    MessageBox.Show("Complete!", "GMap.NET", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    MessageBox.Show("Failed!", "GMap.NET", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+
+                return ok;
+            }
         }
 
         /// <summary>
@@ -2705,24 +2798,24 @@ namespace GMap.NET.WindowsForms
                 dlg.FilterIndex = 1;
                 dlg.RestoreDirectory = true;
 
-                if (dlg.ShowDialog() == DialogResult.OK)
+                if (dlg.ShowDialog() != DialogResult.OK)
                 {
-                    bool ok = GMaps.Instance.ImportFromGMDB(dlg.FileName);
-                    if (ok)
-                    {
-                        MessageBox.Show("Complete!", "GMap.NET", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        ReloadMap();
-                    }
-                    else
-                    {
-                        MessageBox.Show("Failed!", "GMap.NET", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    }
-
-                    return ok;
+                    return false;
                 }
-            }
 
-            return false;
+                bool ok = GMaps.Instance.ImportFromGMDB(dlg.FileName);
+                if (ok)
+                {
+                    MessageBox.Show("Complete!", "GMap.NET", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    ReloadMap();
+                }
+                else
+                {
+                    MessageBox.Show("Failed!", "GMap.NET", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+
+                return ok;
+            }
         }
 
         [Category("GMap.NET")]
@@ -2739,44 +2832,35 @@ namespace GMap.NET.WindowsForms
             }
             set
             {
-                if (_zoomReal != value)
+                if (_zoomReal == value)
                 {
-                    Debug.WriteLine("ZoomPropertyChanged: " + _zoomReal + " -> " + value);
+                    return;
+                }
 
-                    if (value > MaxZoom)
-                    {
-                        _zoomReal = MaxZoom;
-                    }
-                    else if (value < MinZoom)
-                    {
-                        _zoomReal = MinZoom;
-                    }
-                    else
-                    {
-                        _zoomReal = value;
-                    }
+                Debug.WriteLine("ZoomPropertyChanged: " + _zoomReal + " -> " + value);
 
-                    double remainder = value % 1;
-                    if (ScaleMode == ScaleModes.Fractional && remainder != 0)
-                    {
-                        float scaleValue = (float)Math.Pow(2d, remainder);
-                        {
-                            _mapRenderTransform = scaleValue;
-                        }
+                _zoomReal = value > MaxZoom ? MaxZoom : value < MinZoom ? MinZoom : value;
 
-                        ZoomStep = Convert.ToInt32(value - remainder);
-                    }
-                    else
+                double remainder = value % 1;
+                if (ScaleMode == ScaleModes.Fractional && remainder != 0)
+                {
+                    float scaleValue = (float)Math.Pow(2d, remainder);
                     {
-                        _mapRenderTransform = null;
-                        ZoomStep = (int)Math.Floor(value);
-                        //zoomReal = ZoomStep;
+                        _mapRenderTransform = scaleValue;
                     }
 
-                    if (Core.IsStarted && !IsDragging)
-                    {
-                        ForceUpdateOverlays();
-                    }
+                    ZoomStep = Convert.ToInt32(value - remainder);
+                }
+                else
+                {
+                    _mapRenderTransform = null;
+                    ZoomStep = (int)Math.Floor(value);
+                    //zoomReal = ZoomStep;
+                }
+
+                if (Core.IsStarted && !IsDragging)
+                {
+                    ForceUpdateOverlays();
                 }
             }
         }
@@ -2976,43 +3060,51 @@ namespace GMap.NET.WindowsForms
 
             set
             {
-                if (Core.Provider == null || !Core.Provider.Equals(value))
+                if (Core.Provider != null && Core.Provider.Equals(value))
+                {
+                    return;
+                }
+
+                if (Core.Provider != null)
                 {
                     Debug.WriteLine("MapType: " + Core.Provider.Name + " -> " + value.Name);
+                }
 
-                    var viewarea = SelectedArea;
+                var viewArea = SelectedArea;
 
-                    if (viewarea != RectLatLng.Empty)
+                if (viewArea != RectLatLng.Empty)
+                {
+                    Position = new PointLatLng(viewArea.Lat - viewArea.HeightLat / 2,
+                        viewArea.Lng + viewArea.WidthLng / 2);
+                }
+                else
+                {
+                    viewArea = ViewArea;
+                }
+
+                Core.Provider = value;
+
+                if (!Core.IsStarted)
+                {
+                    return;
+                }
+
+                if (Core.ZoomToArea)
+                {
+                    if (viewArea == RectLatLng.Empty || viewArea == ViewArea)
                     {
-                        Position = new PointLatLng(viewarea.Lat - viewarea.HeightLat / 2,
-                            viewarea.Lng + viewarea.WidthLng / 2);
-                    }
-                    else
-                    {
-                        viewarea = ViewArea;
+                        return;
                     }
 
-                    Core.Provider = value;
-
-                    if (Core.IsStarted)
+                    int bestZoom = Core.GetMaxZoomToFitRect(viewArea);
+                    if (bestZoom > 0 && Zoom != bestZoom)
                     {
-                        if (Core.ZoomToArea)
-                        {
-                            // restore zoomrect as close as possible
-                            if (viewarea != RectLatLng.Empty && viewarea != ViewArea)
-                            {
-                                int bestZoom = Core.GetMaxZoomToFitRect(viewarea);
-                                if (bestZoom > 0 && Zoom != bestZoom)
-                                {
-                                    Zoom = bestZoom;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            ForceUpdateOverlays();
-                        }
+                        Zoom = bestZoom;
                     }
+                }
+                else
+                {
+                    ForceUpdateOverlays();
                 }
             }
         }
@@ -3023,11 +3115,10 @@ namespace GMap.NET.WindowsForms
         {
             get
             {
-                var dp = MapProvider as RoutingProvider;
-
-                if (dp == null)
-                    dp = GMapProviders
-                        .OpenStreetMap as RoutingProvider; // use OpenStreetMap if provider does not implement routing
+                if (!(MapProvider is RoutingProvider dp))
+                {
+                    dp = GMapProviders.OpenStreetMap; // use OpenStreetMap if provider does not implement routing
+                }
 
                 return dp;
             }
@@ -3039,12 +3130,10 @@ namespace GMap.NET.WindowsForms
         {
             get
             {
-                var dp = MapProvider as DirectionsProvider;
-
-                if (dp == null)
-                    dp = GMapProviders
-                            .OpenStreetMap as
-                        DirectionsProvider; // use OpenStreetMap if provider does not implement routing
+                if (!(MapProvider is DirectionsProvider dp))
+                {
+                    dp = GMapProviders.GoogleMap; //TODO: use GoogleMap if provider does not implement directions, should change to OpenStreetMap
+                }
 
                 return dp;
             }
@@ -3056,11 +3145,10 @@ namespace GMap.NET.WindowsForms
         {
             get
             {
-                var dp = MapProvider as GeocodingProvider;
-
-                if (dp == null)
-                    dp = GMapProviders
-                        .OpenStreetMap as GeocodingProvider; // use OpenStreetMap if provider does not implement routing
+                if (!(MapProvider is GeocodingProvider dp))
+                {
+                    dp = GMapProviders.OpenStreetMap; // use OpenStreetMap if provider does not implement routing
+                }
 
                 return dp;
             }
@@ -3072,11 +3160,10 @@ namespace GMap.NET.WindowsForms
         {
             get
             {
-                var dp = MapProvider as RoadsProvider;
-
-                if (dp == null)
-                    dp = GMapProviders
-                        .GoogleMap as RoadsProvider; // use GoogleMap if provider does not implement routing
+                if (!(MapProvider is RoadsProvider dp))
+                {
+                    dp = GMapProviders.GoogleMap; //TODO: use GoogleMap if provider does not implement roads, should change to OpenStreetMap
+                }
 
                 return dp;
             }
@@ -3255,7 +3342,7 @@ namespace GMap.NET.WindowsForms
         }
 
         /// <summary>
-        ///     occures on map type changed
+        ///     occurs on map type changed
         /// </summary>
         public event MapTypeChanged OnMapTypeChanged
         {
@@ -3298,7 +3385,7 @@ namespace GMap.NET.WindowsForms
         //{
         //    if (stream == null)
         //    {
-        //        throw new ArgumentNullException("stream");
+        //        throw new ArgumentNullException(nameof(stream));
         //    }
 
         //    // Create an array from the overlays
@@ -3317,17 +3404,18 @@ namespace GMap.NET.WindowsForms
         //{
         //    if (stream == null)
         //    {
-        //        throw new ArgumentNullException("stream");
+        //        throw new ArgumentNullException(nameof(stream));
         //    }
 
         //    // De-serialize the overlays
-        //    var overlayArray = BinaryFormatter.Deserialize(stream) as GMapOverlay[];
-
-        //    // Populate the collection of overlays.
-        //    foreach (var overlay in overlayArray)
+        //    if (BinaryFormatter.Deserialize(stream) is GMapOverlay[] overlayArray)
         //    {
-        //        overlay.Control = this;
-        //        Overlays.Add(overlay);
+        //        // Populate the collection of overlays.
+        //        foreach (var overlay in overlayArray)
+        //        {
+        //            overlay.Control = this;
+        //            Overlays.Add(overlay);
+        //        }
         //    }
 
         //    ForceUpdateOverlays();

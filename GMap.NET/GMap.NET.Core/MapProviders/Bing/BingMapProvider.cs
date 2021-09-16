@@ -207,9 +207,7 @@ namespace GMap.NET.MapProviders
                             // Bing Maps WPF Control
                             // http://dev.virtualearth.net/webservices/v1/LoggingService/LoggingService.svc/Log?entry=0&auth={0}&fmt=1&type=3&group=MapControl&name=WPF&version=1.0.0.0&session=00000000-0000-0000-0000-000000000000&mkt=en-US
 
-                            keyResponse = GetContentUsingHttp(string.Format(
-                                "http://dev.virtualearth.net/webservices/v1/LoggingService/LoggingService.svc/Log?entry=0&fmt=1&type=3&group=MapControl&name=AJAX&mkt=en-us&auth={0}&jsonp=microsoftMapsNetworkCallback",
-                                key));
+                            keyResponse = GetContentUsingHttp($"http://dev.virtualearth.net/webservices/v1/LoggingService/LoggingService.svc/Log?entry=0&fmt=1&type=3&group=MapControl&name=AJAX&mkt=en-us&auth={key}&jsonp=microsoftMapsNetworkCallback");
 
                             if (!string.IsNullOrEmpty(keyResponse) && keyResponse.Contains("ValidCredentials"))
                             {
@@ -336,45 +334,55 @@ namespace GMap.NET.MapProviders
             //This will prevent the app from breaking when the map tiles change.
 
             string ret = string.Empty;
-            if (!string.IsNullOrEmpty(SessionId))
+            if (string.IsNullOrEmpty(SessionId))
             {
-                try
+                return ret;
+            }
+
+            try
+            {
+                string url = "http://dev.virtualearth.net/REST/V1/Imagery/Metadata/" + imageryType +
+                             "?output=xml&key=" + SessionId;
+
+                string r = GMaps.Instance.UseUrlCache
+                    ? Cache.Instance.GetContent("GetTileUrl" + imageryType,
+                        CacheType.UrlCache,
+                        TimeSpan.FromHours(TTLCache))
+                    : string.Empty;
+                bool cache = false;
+
+                if (string.IsNullOrEmpty(r))
                 {
-                    string url = "http://dev.virtualearth.net/REST/V1/Imagery/Metadata/" + imageryType +
-                                 "?output=xml&key=" + SessionId;
+                    r = GetContentUsingHttp(url);
+                    cache = true;
+                }
 
-                    string r = GMaps.Instance.UseUrlCache
-                        ? Cache.Instance.GetContent("GetTileUrl" + imageryType,
-                            CacheType.UrlCache,
-                            TimeSpan.FromHours(TTLCache))
-                        : string.Empty;
-                    bool cache = false;
+                if (!string.IsNullOrEmpty(r))
+                {
+                    var doc = new XmlDocument();
+                    doc.LoadXml(r);
 
-                    if (string.IsNullOrEmpty(r))
+                    XmlNode xn = doc["Response"];
+                    if (xn != null)
                     {
-                        r = GetContentUsingHttp(url);
-                        cache = true;
-                    }
+                        string statusCode = xn["StatusCode"]?.InnerText;
 
-                    if (!string.IsNullOrEmpty(r))
-                    {
-                        var doc = new XmlDocument();
-                        doc.LoadXml(r);
-
-                        XmlNode xn = doc["Response"];
-                        string statuscode = xn["StatusCode"].InnerText;
-
-                        if (string.Compare(statuscode, "200", true) == 0)
+                        if (String.Compare(statusCode, "200", StringComparison.OrdinalIgnoreCase) == 0)
                         {
-                            xn = xn["ResourceSets"]["ResourceSet"]["Resources"];
-                            var xnl = xn.ChildNodes;
-
-                            foreach (XmlNode xno in xnl)
+                            xn = xn["ResourceSets"]?["ResourceSet"]?["Resources"];
+                            if (xn != null)
                             {
-                                XmlNode imageUrl = xno["ImageUrl"];
+                                var xnl = xn.ChildNodes;
 
-                                if (imageUrl != null && !string.IsNullOrEmpty(imageUrl.InnerText))
+                                foreach (XmlNode xno in xnl)
                                 {
+                                    XmlNode imageUrl = xno["ImageUrl"];
+
+                                    if (imageUrl == null || string.IsNullOrEmpty(imageUrl.InnerText))
+                                    {
+                                        continue;
+                                    }
+
                                     if (cache && GMaps.Instance.UseUrlCache)
                                     {
                                         Cache.Instance.SaveContent("GetTileUrl" + imageryType, CacheType.UrlCache, r);
@@ -401,10 +409,10 @@ namespace GMap.NET.MapProviders
                         }
                     }
                 }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine("GetTileUrl: Error getting Bing Maps tile URL - " + ex);
-                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("GetTileUrl: Error getting Bing Maps tile URL - " + ex);
             }
 
             return ret;
@@ -412,26 +420,6 @@ namespace GMap.NET.MapProviders
 
         #region RoutingProvider
 
-        public MapRoute GetRoute(List<PointLatLng> list, bool avoidHighways, bool walkingMode, int zoom)
-        {
-            string tooltip;
-            int numLevels;
-            int zoomFactor;
-            MapRoute ret = null;
-            var points = GetRoutePoints(MakeRouteUrl(list, LanguageStr, avoidHighways, walkingMode),
-                zoom,
-                out tooltip,
-                out numLevels,
-                out zoomFactor);
-            if (points != null)
-            {
-                ret = new MapRoute(points, tooltip);
-            }
-
-            return ret;
-        }
-
-        
         public MapRoute GetRoute(PointLatLng start, PointLatLng end, bool avoidHighways, bool walkingMode, int zoom)
         {
             string tooltip;
@@ -470,25 +458,44 @@ namespace GMap.NET.MapProviders
             return ret;
         }
 
-        private string MakeRouteUrl(List<PointLatLng> list, string languageStr, bool avoidHighways, bool walkingMode)
+        public MapRoute GetRoute(List<PointLatLng> list, bool avoidHighways, bool walkingMode, int zoom)
         {
-            string addition = avoidHighways ? "&avoid=highways" : string.Empty;
-            string mode = walkingMode ? "Walking" : "Driving";
-
-            var wayPoints = new StringBuilder();
-            for (int i = 0; i < list.Count; i++)
+            string tooltip;
+            int numLevels;
+            int zoomFactor;
+            MapRoute ret = null;
+            var points = GetRoutePoints(MakeRouteUrl(list, LanguageStr, avoidHighways, walkingMode),
+                zoom,
+                out tooltip,
+                out numLevels,
+                out zoomFactor);
+            if (points != null)
             {
-                var point = list[i];
-                wayPoints.Append($"&wp.{i}={point.Lat},{point.Lng}");
-
+                ret = new MapRoute(points, tooltip);
             }
-            return string.Format(CultureInfo.InvariantCulture,
-                RouteUrlFormatListPointLatLng,
-                mode,
-                wayPoints.ToString(),
-                addition,
-                ClientKey);
+
+            return ret;
         }
+
+        public MapRoute GetRoute(List<string> list, bool avoidHighways, bool walkingMode, int zoom)
+        {
+            string tooltip;
+            int numLevels;
+            int zoomFactor;
+            MapRoute ret = null;
+            var points = GetRoutePoints(MakeRouteUrl(list, LanguageStr, avoidHighways, walkingMode),
+                zoom,
+                out tooltip,
+                out numLevels,
+                out zoomFactor);
+            if (points != null)
+            {
+                ret = new MapRoute(points, tooltip);
+            }
+
+            return ret;
+        }
+
         string MakeRouteUrl(string start, string end, string language, bool avoidHighways, bool walkingMode)
         {
             string addition = avoidHighways ? "&avoid=highways" : string.Empty;
@@ -500,7 +507,7 @@ namespace GMap.NET.MapProviders
                 start,
                 end,
                 addition,
-                ClientKey);
+                ClientKey); //TODO: check if SessionId could be used
         }
 
         string MakeRouteUrl(PointLatLng start, PointLatLng end, string language, bool avoidHighways, bool walkingMode)
@@ -516,7 +523,47 @@ namespace GMap.NET.MapProviders
                 end.Lat,
                 end.Lng,
                 addition,
-                ClientKey);
+                ClientKey); //TODO: check if SessionId could be used
+        }
+
+        private string MakeRouteUrl(IReadOnlyList<PointLatLng> list, string languageStr, bool avoidHighways, bool walkingMode)
+        {
+            string addition = avoidHighways ? "&avoid=highways" : string.Empty;
+            string mode = walkingMode ? "Walking" : "Driving";
+
+            var wayPoints = new StringBuilder();
+            for (int i = 0; i < list.Count; i++)
+            {
+                var point = list[i];
+                wayPoints.Append($"&wp.{i}={point.Lat},{point.Lng}");
+            }
+
+            return string.Format(CultureInfo.InvariantCulture,
+                RouteUrlFormatList,
+                mode,
+                wayPoints.ToString(),
+                addition,
+                ClientKey); //TODO: check if SessionId could be used
+        }
+
+        private string MakeRouteUrl(IReadOnlyList<string> list, string languageStr, bool avoidHighways, bool walkingMode)
+        {
+            string addition = avoidHighways ? "&avoid=highways" : string.Empty;
+            string mode = walkingMode ? "Walking" : "Driving";
+
+            var wayPoints = new StringBuilder();
+            for (int i = 0; i < list.Count; i++)
+            {
+                string place = list[i];
+                wayPoints.Append($"&wp.{i}={place}");
+            }
+
+            return string.Format(CultureInfo.InvariantCulture,
+                RouteUrlFormatList,
+                mode,
+                wayPoints.ToString(),
+                addition,
+                ClientKey); //TODO: check if SessionId could be used
         }
 
         List<PointLatLng> GetRoutePoints(string url, int zoom, out string tooltipHtml, out int numLevel,
@@ -550,20 +597,17 @@ namespace GMap.NET.MapProviders
                 {
                     #region -- title --
 
-                    int tooltipEnd;
+                    int x = route.IndexOf("<RoutePath><Line>", StringComparison.Ordinal) + 17;
+                    if (x >= 17)
                     {
-                        int x = route.IndexOf("<RoutePath><Line>") + 17;
-                        if (x >= 17)
+                        int tooltipEnd = route.IndexOf("</Line></RoutePath>", x + 1, StringComparison.Ordinal);
+                        if (tooltipEnd > 0)
                         {
-                            tooltipEnd = route.IndexOf("</Line></RoutePath>", x + 1);
-                            if (tooltipEnd > 0)
+                            int l = tooltipEnd - x;
+                            if (l > 0)
                             {
-                                int l = tooltipEnd - x;
-                                if (l > 0)
-                                {
-                                    //tooltipHtml = route.Substring(x, l).Replace(@"\x26#160;", " ");
-                                    tooltipHtml = route.Substring(x, l);
-                                }
+                                //tooltipHtml = route.Substring(x, l).Replace(@"\x26#160;", " ");
+                                tooltipHtml = route.Substring(x, l);
                             }
                         }
                     }
@@ -575,47 +619,51 @@ namespace GMap.NET.MapProviders
                     var doc = new XmlDocument();
                     doc.LoadXml(route);
                     XmlNode xn = doc["Response"];
-                    string statuscode = xn["StatusCode"].InnerText;
-                    switch (statuscode)
+                    if (xn != null)
                     {
-                        case "200":
+                        string statusCode = xn["StatusCode"]?.InnerText;
+                        switch (statusCode)
                         {
-                            xn = xn["ResourceSets"]["ResourceSet"]["Resources"]["Route"]["RoutePath"]["Line"];
-                            var xnl = xn.ChildNodes;
-                            if (xnl.Count > 0)
+                            case "200":
                             {
-                                points = new List<PointLatLng>();
-                                foreach (XmlNode xno in xnl)
+                                xn = xn["ResourceSets"]?["ResourceSet"]?["Resources"]?["Route"]?["RoutePath"]?["Line"];
+                                if (xn != null)
                                 {
-                                    XmlNode latitude = xno["Latitude"];
-                                    XmlNode longitude = xno["Longitude"];
-                                    points.Add(new PointLatLng(
-                                        double.Parse(latitude.InnerText, CultureInfo.InvariantCulture),
-                                        double.Parse(longitude.InnerText, CultureInfo.InvariantCulture)));
+                                    var xnl = xn.ChildNodes;
+                                    if (xnl.Count > 0)
+                                    {
+                                        points = new List<PointLatLng>();
+                                        foreach (XmlNode xno in xnl)
+                                        {
+                                            XmlNode latitude = xno["Latitude"];
+                                            XmlNode longitude = xno["Longitude"];
+                                            if (latitude != null && longitude != null)
+                                            {
+                                                points.Add(new PointLatLng(
+                                                    double.Parse(latitude.InnerText, CultureInfo.InvariantCulture),
+                                                    double.Parse(longitude.InnerText,
+                                                        CultureInfo.InvariantCulture)));
+                                            }
+                                        }
+                                    }
                                 }
-                            }
 
-                            break;
+                                break;
+                            }
+                            // no status implementation on routes yet although when introduced these are the codes. Exception will be catched.
+                            case "400":
+                                throw new Exception("Bad Request, The request contained an error.");
+                            case "401":
+                                throw new Exception("Unauthorized, Access was denied. You may have entered your credentials incorrectly, or you might not have access to the requested resource or operation.");
+                            case "403":
+                                throw new Exception("Forbidden, The request is for something forbidden. Authorization will not help.");
+                            case "404":
+                                throw new Exception("Not Found, The requested resource was not found.");
+                            case "500":
+                                throw new Exception("Internal Server Error, Your request could not be completed because there was a problem with the service.");
+                            case "501":
+                                throw new Exception("Service Unavailable, There's a problem with the service right now. Please try again later.");
                         }
-                        // no status implementation on routes yet although when introduced these are the codes. Exception will be catched.
-                        case "400":
-                            throw new Exception("Bad Request, The request contained an error.");
-                        case "401":
-                            throw new Exception(
-                                "Unauthorized, Access was denied. You may have entered your credentials incorrectly, or you might not have access to the requested resource or operation.");
-                        case "403":
-                            throw new Exception(
-                                "Forbidden, The request is for something forbidden. Authorization will not help.");
-                        case "404":
-                            throw new Exception("Not Found, The requested resource was not found.");
-                        case "500":
-                            throw new Exception(
-                                "Internal Server Error, Your request could not be completed because there was a problem with the service.");
-                        case "501":
-                            throw new Exception(
-                                "Service Unavailable, There's a problem with the service right now. Please try again later.");
-                        default:
-                            break; // unknown, for possible future error codes
                     }
 
                     #endregion
@@ -631,14 +679,9 @@ namespace GMap.NET.MapProviders
         }
 
         // example : http://dev.virtualearth.net/REST/V1/Routes/Driving?o=xml&wp.0=44.979035,-93.26493&wp.1=44.943828508257866,-93.09332862496376&optmz=distance&rpo=Points&key=[PROVIDEYOUROWNKEY!!]
-        static readonly string RouteUrlFormatPointLatLng =
-            "http://dev.virtualearth.net/REST/V1/Routes/{0}?o=xml&wp.0={1},{2}&wp.1={3},{4}{5}&optmz=distance&rpo=Points&key={6}";
-
-        static readonly string RouteUrlFormatPointQueries =
-            "http://dev.virtualearth.net/REST/V1/Routes/{0}?o=xml&wp.0={1}&wp.1={2}{3}&optmz=distance&rpo=Points&key={4}";
-
-        static readonly string RouteUrlFormatListPointLatLng =
-            "http://dev.virtualearth.net/REST/V1/Routes/{0}?o=xml{1}{2}&optmz=distance&rpo=Points&key={3}";
+        private const string RouteUrlFormatPointLatLng = "http://dev.virtualearth.net/REST/V1/Routes/{0}?o=xml&wp.0={1},{2}&wp.1={3},{4}{5}&optmz=distance&rpo=Points&key={6}";
+        private const string RouteUrlFormatPointQueries = "http://dev.virtualearth.net/REST/V1/Routes/{0}?o=xml&wp.0={1}&wp.1={2}{3}&optmz=distance&rpo=Points&key={4}";
+        private const string RouteUrlFormatList = "http://dev.virtualearth.net/REST/V1/Routes/{0}?o=xml{1}{2}&optmz=distance&rpo=Points&key={3}";
 
         #endregion RoutingProvider
 
@@ -652,8 +695,7 @@ namespace GMap.NET.MapProviders
 
         public PointLatLng? GetPoint(string keywords, out GeoCoderStatusCode status)
         {
-            List<PointLatLng> pointList;
-            status = GetPoints(keywords, out pointList);
+            status = GetPoints(keywords, out var pointList);
             return pointList != null && pointList.Count > 0 ? pointList[0] : (PointLatLng?)null;
         }
 
@@ -664,8 +706,7 @@ namespace GMap.NET.MapProviders
 
         public PointLatLng? GetPoint(Placemark placemark, out GeoCoderStatusCode status)
         {
-            List<PointLatLng> pointList;
-            status = GetLatLngFromGeocoderUrl(MakeGeocoderDetailedUrl(placemark), out pointList);
+            status = GetLatLngFromGeocoderUrl(MakeGeocoderDetailedUrl(placemark), out var pointList);
             return pointList != null && pointList.Count > 0 ? pointList[0] : (PointLatLng?)null;
         }
 
@@ -674,35 +715,39 @@ namespace GMap.NET.MapProviders
             string parameters = string.Empty;
 
             if (!AddFieldIfNotEmpty(ref parameters, "countryRegion", placemark.CountryNameCode))
+            {
                 AddFieldIfNotEmpty(ref parameters, "countryRegion", placemark.CountryName);
+            }
 
             AddFieldIfNotEmpty(ref parameters, "adminDistrict", placemark.DistrictName);
             AddFieldIfNotEmpty(ref parameters, "locality", placemark.LocalityName);
             AddFieldIfNotEmpty(ref parameters, "postalCode", placemark.PostalCodeNumber);
 
             if (!string.IsNullOrEmpty(placemark.HouseNo))
+            {
                 AddFieldIfNotEmpty(ref parameters, "addressLine", placemark.ThoroughfareName + " " + placemark.HouseNo);
+            }
             else
+            {
                 AddFieldIfNotEmpty(ref parameters, "addressLine", placemark.ThoroughfareName);
+            }
 
             return MakeGeocoderUrl(parameters);
         }
 
         bool AddFieldIfNotEmpty(ref string input, string fieldName, string value)
         {
-            if (!string.IsNullOrEmpty(value))
+            if (string.IsNullOrEmpty(value))
             {
-                if (string.IsNullOrEmpty(input))
-                    input = string.Empty;
-                else
-                    input = input + "&";
-
-                input = input + fieldName + "=" + value;
-
-                return true;
+                return false;
             }
 
-            return false;
+            input = string.IsNullOrEmpty(input) ? string.Empty : input + "&";
+
+            input = input + fieldName + "=" + value;
+
+            return true;
+
         }
 
         public GeoCoderStatusCode GetPlacemarks(PointLatLng location, out List<Placemark> placemarkList)
@@ -719,7 +764,7 @@ namespace GMap.NET.MapProviders
 
         string MakeGeocoderUrl(string keywords)
         {
-            return string.Format(CultureInfo.InvariantCulture, GeocoderUrlFormat, keywords, ClientKey);
+            return string.Format(CultureInfo.InvariantCulture, GeocoderUrlFormat, keywords, SessionId);
         }
 
         GeoCoderStatusCode GetLatLngFromGeocoderUrl(string url, out List<PointLatLng> pointList)
@@ -753,60 +798,66 @@ namespace GMap.NET.MapProviders
                         var doc = new XmlDocument();
                         doc.LoadXml(geo);
                         XmlNode xn = doc["Response"];
-                        string statuscode = xn["StatusCode"].InnerText;
-                        switch (statuscode)
+                        if (xn != null)
                         {
-                            case "200":
+                            string statusCode = xn["StatusCode"]?.InnerText;
+                            switch (statusCode)
                             {
-                                pointList = new List<PointLatLng>();
-                                xn = xn["ResourceSets"]["ResourceSet"]["Resources"];
-                                var xnl = xn.ChildNodes;
-                                foreach (XmlNode xno in xnl)
+                                case "200":
                                 {
-                                    XmlNode latitude = xno["Point"]["Latitude"];
-                                    XmlNode longitude = xno["Point"]["Longitude"];
-                                    pointList.Add(new PointLatLng(
-                                        Double.Parse(latitude.InnerText, CultureInfo.InvariantCulture),
-                                        Double.Parse(longitude.InnerText, CultureInfo.InvariantCulture)));
-                                }
-
-                                if (pointList.Count > 0)
-                                {
-                                    status = GeoCoderStatusCode.OK;
-
-                                    if (cache && GMaps.Instance.UseGeocoderCache)
+                                    pointList = new List<PointLatLng>();
+                                    xn = xn["ResourceSets"]?["ResourceSet"]?["Resources"];
+                                    var xnl = xn.ChildNodes;
+                                    foreach (XmlNode xno in xnl)
                                     {
-                                        Cache.Instance.SaveContent(url, CacheType.GeocoderCache, geo);
+                                        XmlNode latitude = xno["Point"]?["Latitude"];
+                                        XmlNode longitude = xno["Point"]?["Longitude"];
+                                        if (latitude != null && longitude != null)
+                                        {
+                                            pointList.Add(new PointLatLng(
+                                                Double.Parse(latitude.InnerText, CultureInfo.InvariantCulture),
+                                                Double.Parse(longitude.InnerText, CultureInfo.InvariantCulture)));
+                                        }
                                     }
 
+                                    if (pointList.Count > 0)
+                                    {
+                                        status = GeoCoderStatusCode.OK;
+
+                                        if (cache && GMaps.Instance.UseGeocoderCache)
+                                        {
+                                            Cache.Instance.SaveContent(url, CacheType.GeocoderCache, geo);
+                                        }
+
+                                        break;
+                                    }
+
+                                    status = GeoCoderStatusCode.ZERO_RESULTS;
                                     break;
                                 }
 
-                                status = GeoCoderStatusCode.ZERO_RESULTS;
-                                break;
+                                case "400":
+                                    status = GeoCoderStatusCode.INVALID_REQUEST;
+                                    break; // bad request, The request contained an error.
+                                case "401":
+                                    status = GeoCoderStatusCode.REQUEST_DENIED;
+                                    break; // Unauthorized, Access was denied. You may have entered your credentials incorrectly, or you might not have access to the requested resource or operation.
+                                case "403":
+                                    status = GeoCoderStatusCode.INVALID_REQUEST;
+                                    break; // Forbidden, The request is for something forbidden. Authorization will not help.
+                                case "404":
+                                    status = GeoCoderStatusCode.ZERO_RESULTS;
+                                    break; // Not Found, The requested resource was not found. 
+                                case "500":
+                                    status = GeoCoderStatusCode.ERROR;
+                                    break; // Internal Server Error, Your request could not be completed because there was a problem with the service.
+                                case "501":
+                                    status = GeoCoderStatusCode.UNKNOWN_ERROR;
+                                    break; // Service Unavailable, There's a problem with the service right now. Please try again later.
+                                default:
+                                    status = GeoCoderStatusCode.UNKNOWN_ERROR;
+                                    break; // unknown, for possible future error codes
                             }
-
-                            case "400":
-                                status = GeoCoderStatusCode.INVALID_REQUEST;
-                                break; // bad request, The request contained an error.
-                            case "401":
-                                status = GeoCoderStatusCode.REQUEST_DENIED;
-                                break; // Unauthorized, Access was denied. You may have entered your credentials incorrectly, or you might not have access to the requested resource or operation.
-                            case "403":
-                                status = GeoCoderStatusCode.INVALID_REQUEST;
-                                break; // Forbidden, The request is for something forbidden. Authorization will not help.
-                            case "404":
-                                status = GeoCoderStatusCode.ZERO_RESULTS;
-                                break; // Not Found, The requested resource was not found. 
-                            case "500":
-                                status = GeoCoderStatusCode.ERROR;
-                                break; // Internal Server Error, Your request could not be completed because there was a problem with the service.
-                            case "501":
-                                status = GeoCoderStatusCode.UNKNOWN_ERROR;
-                                break; // Service Unavailable, There's a problem with the service right now. Please try again later.
-                            default:
-                                status = GeoCoderStatusCode.UNKNOWN_ERROR;
-                                break; // unknown, for possible future error codes
                         }
                     }
                 }

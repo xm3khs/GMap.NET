@@ -214,6 +214,11 @@ namespace GMap.NET.MapProviders
                         points = new List<PointLatLng>();
                         foreach (XmlNode w in wpts)
                         {
+                            if (w.Attributes == null)
+                            {
+                                continue;
+                            }
+
                             double lat = double.Parse(w.Attributes["lat"].InnerText, CultureInfo.InvariantCulture);
                             double lng = double.Parse(w.Attributes["lon"].InnerText, CultureInfo.InvariantCulture);
                             points.Add(new PointLatLng(lat, lng));
@@ -437,21 +442,26 @@ namespace GMap.NET.MapProviders
 
                 if (!string.IsNullOrEmpty(route))
                 {
-                    var xmldoc = new XmlDocument();
-                    xmldoc.LoadXml(route);
-                    var xmlnsManager = new XmlNamespaceManager(xmldoc.NameTable);
+                    var xmlDoc = new XmlDocument();
+                    xmlDoc.LoadXml(route);
+                    var xmlnsManager = new XmlNamespaceManager(xmlDoc.NameTable);
                     xmlnsManager.AddNamespace("sm", "http://www.topografix.com/GPX/1/1");
 
-                    var wpts = xmldoc.SelectNodes("/sm:gpx/sm:wpt", xmlnsManager);
-                    if (wpts != null && wpts.Count > 0)
+                    var wptNodeList = xmlDoc.SelectNodes("/sm:gpx/sm:wpt", xmlnsManager);
+                    if (wptNodeList != null && wptNodeList.Count > 0)
                     {
                         ret = DirectionsStatusCode.OK;
 
                         direction = new GDirections();
                         direction.Route = new List<PointLatLng>();
 
-                        foreach (XmlNode w in wpts)
+                        foreach (XmlNode w in wptNodeList)
                         {
+                            if (w.Attributes == null)
+                            {
+                                continue;
+                            }
+
                             double lat = double.Parse(w.Attributes["lat"].InnerText, CultureInfo.InvariantCulture);
                             double lng = double.Parse(w.Attributes["lon"].InnerText, CultureInfo.InvariantCulture);
                             direction.Route.Add(new PointLatLng(lat, lng));
@@ -463,50 +473,53 @@ namespace GMap.NET.MapProviders
                             direction.EndLocation = direction.Route[direction.Route.Count - 1];
                         }
 
-                        var n = xmldoc.SelectSingleNode("/sm:gpx/sm:metadata/sm:copyright/sm:license",
+                        var n = xmlDoc.SelectSingleNode("/sm:gpx/sm:metadata/sm:copyright/sm:license",
                             xmlnsManager);
                         if (n != null)
                         {
                             direction.Copyrights = n.InnerText;
                         }
 
-                        n = xmldoc.SelectSingleNode("/sm:gpx/sm:extensions/sm:distance", xmlnsManager);
+                        n = xmlDoc.SelectSingleNode("/sm:gpx/sm:extensions/sm:distance", xmlnsManager);
                         if (n != null)
                         {
                             direction.Distance = n.InnerText + "m";
                         }
 
-                        n = xmldoc.SelectSingleNode("/sm:gpx/sm:extensions/sm:time", xmlnsManager);
+                        n = xmlDoc.SelectSingleNode("/sm:gpx/sm:extensions/sm:time", xmlnsManager);
                         if (n != null)
                         {
                             direction.Duration = n.InnerText + "s";
                         }
 
-                        n = xmldoc.SelectSingleNode("/sm:gpx/sm:extensions/sm:start", xmlnsManager);
+                        n = xmlDoc.SelectSingleNode("/sm:gpx/sm:extensions/sm:start", xmlnsManager);
                         if (n != null)
                         {
                             direction.StartAddress = n.InnerText;
                         }
 
-                        n = xmldoc.SelectSingleNode("/sm:gpx/sm:extensions/sm:end", xmlnsManager);
+                        n = xmlDoc.SelectSingleNode("/sm:gpx/sm:extensions/sm:end", xmlnsManager);
                         if (n != null)
                         {
                             direction.EndAddress = n.InnerText;
                         }
 
-                        wpts = xmldoc.SelectNodes("/sm:gpx/sm:rte/sm:rtept", xmlnsManager);
-                        if (wpts != null && wpts.Count > 0)
+                        wptNodeList = xmlDoc.SelectNodes("/sm:gpx/sm:rte/sm:rtept", xmlnsManager);
+                        if (wptNodeList != null && wptNodeList.Count > 0)
                         {
                             direction.Steps = new List<GDirectionStep>();
 
-                            foreach (XmlNode w in wpts)
+                            foreach (XmlNode w in wptNodeList)
                             {
                                 var step = new GDirectionStep();
 
-                                double lat = double.Parse(w.Attributes["lat"].InnerText, CultureInfo.InvariantCulture);
-                                double lng = double.Parse(w.Attributes["lon"].InnerText, CultureInfo.InvariantCulture);
+                                if (w.Attributes != null)
+                                {
+                                    double lat = double.Parse(w.Attributes["lat"].InnerText, CultureInfo.InvariantCulture);
+                                    double lng = double.Parse(w.Attributes["lon"].InnerText, CultureInfo.InvariantCulture);
 
-                                step.StartLocation = new PointLatLng(lat, lng);
+                                    step.StartLocation = new PointLatLng(lat, lng);
+                                }
 
                                 var nn = w.SelectSingleNode("sm:desc", xmlnsManager);
                                 if (nn != null)
