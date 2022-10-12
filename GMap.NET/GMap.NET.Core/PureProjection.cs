@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
-using System.Linq;
 using static System.Math;
 
 namespace GMap.NET
@@ -85,20 +84,21 @@ namespace GMap.NET
         {
             if (useCache)
             {
-                var ret = GPoint.Empty;
-                if (!_fromLatLngToPixelCache[zoom].TryGetValue(p, out ret))
+                if (_fromLatLngToPixelCache[zoom].TryGetValue(p, out var ret))
                 {
-                    ret = FromLatLngToPixel(p.Lat, p.Lng, zoom);
-                    _fromLatLngToPixelCache[zoom].Add(p, ret);
-
-                    // for reverse cache
-                    if (!_fromPixelToLatLngCache[zoom].ContainsKey(ret))
-                    {
-                        _fromPixelToLatLngCache[zoom].Add(ret, p);
-                    }
-
-                    Debug.WriteLine("FromLatLngToPixelCache[" + zoom + "] added " + p + " with " + ret);
+                    return ret;
                 }
+
+                ret = FromLatLngToPixel(p.Lat, p.Lng, zoom);
+                _fromLatLngToPixelCache[zoom].Add(p, ret);
+
+                // for reverse cache
+                if (!_fromPixelToLatLngCache[zoom].ContainsKey(ret))
+                {
+                    _fromPixelToLatLngCache[zoom].Add(ret, p);
+                }
+
+                Debug.WriteLine("FromLatLngToPixelCache[" + zoom + "] added " + p + " with " + ret);
 
                 return ret;
             }
@@ -124,20 +124,21 @@ namespace GMap.NET
         {
             if (useCache)
             {
-                var ret = PointLatLng.Empty;
-                if (!_fromPixelToLatLngCache[zoom].TryGetValue(p, out ret))
+                if (_fromPixelToLatLngCache[zoom].TryGetValue(p, out var ret))
                 {
-                    ret = FromPixelToLatLng(p.X, p.Y, zoom);
-                    _fromPixelToLatLngCache[zoom].Add(p, ret);
-
-                    // for reverse cache
-                    if (!_fromLatLngToPixelCache[zoom].ContainsKey(ret))
-                    {
-                        _fromLatLngToPixelCache[zoom].Add(ret, p);
-                    }
-
-                    Debug.WriteLine("FromPixelToLatLngCache[" + zoom + "] added " + p + " with " + ret);
+                    return ret;
                 }
+
+                ret = FromPixelToLatLng(p.X, p.Y, zoom);
+                _fromPixelToLatLngCache[zoom].Add(p, ret);
+
+                // for reverse cache
+                if (!_fromLatLngToPixelCache[zoom].ContainsKey(ret))
+                {
+                    _fromLatLngToPixelCache[zoom].Add(ret, p);
+                }
+
+                Debug.WriteLine("FromPixelToLatLngCache[" + zoom + "] added " + p + " with " + ret);
 
                 return ret;
             }
@@ -228,7 +229,7 @@ namespace GMap.NET
             long toX = rightBottom.X + padding;
             long y0 = Max(0, topLeft.Y - padding);
             long toY = rightBottom.Y + padding;
-            
+
             var list = new List<GPoint>((int)((toX - x + 1) * (toY - y0 + 1)));
 
             for (; x <= toX; x++)
@@ -325,27 +326,35 @@ namespace GMap.NET
             while (true)
             {
                 if (Abs(x) <= PI)
+                {
                     break;
+                }
                 else if ((long)Abs(x / PI) < 2)
-                    x = x - Sign(x) * TwoPi;
+                {
+                    x -= Sign(x) * TwoPi;
+                }
                 else if ((long)Abs(x / TwoPi) < MaxLong)
                 {
-                    x = x - (long)(x / TwoPi) * TwoPi;
+                    x -= (long)(x / TwoPi) * TwoPi;
                 }
                 else if ((long)Abs(x / (MaxLong * TwoPi)) < MaxLong)
                 {
-                    x = x - (long)(x / (MaxLong * TwoPi)) * (TwoPi * MaxLong);
+                    x -= (long)(x / (MaxLong * TwoPi)) * (TwoPi * MaxLong);
                 }
                 else if ((long)Abs(x / (DblLong * TwoPi)) < MaxLong)
                 {
-                    x = x - (long)(x / (DblLong * TwoPi)) * (TwoPi * DblLong);
+                    x -= (long)(x / (DblLong * TwoPi)) * (TwoPi * DblLong);
                 }
                 else
-                    x = x - Sign(x) * TwoPi;
+                {
+                    x -= Sign(x) * TwoPi;
+                }
 
                 count++;
                 if (count > MaxVal)
+                {
                     break;
+                }
             }
 
             return x;
@@ -509,7 +518,7 @@ namespace GMap.NET
             lng /= PI / 180;
         }
 
-        public static List<PointLatLng> PolylineDecode(string encodedPath)
+        public static IEnumerable<PointLatLng> PolylineDecode(string encodedPath)
         {
             var path = new List<PointLatLng>();
 

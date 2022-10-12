@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -239,26 +239,28 @@ namespace MSR.CVE.BackMaker
         {
             get
             {
-                if (_configurationDict == null)
+                if (_configurationDict != null)
                 {
-                    _configurationDict = new Dictionary<string, ParseableCfg>();
-                    AddCfg(_editionName);
-                    AddCfg(_debugModeEnabled);
-                    AddCfg(_forceAffineControlVisible);
-                    AddCfg(_enableS3);
-                    AddCfg(_autoMaxZoomOffset);
-                    AddCfg(_usingManifests);
-                    AddCfg(_debugRefs);
-                    AddCfg(_logInteractiveRenders);
-                    AddCfg(_allFilesOption);
-                    AddCfg(_suppressFoxitMessages);
-                    AddCfg(_enableSnapFeatures);
-                    AddCfg(_veFormatUpdateURL);
-                    AddCfg(_injectTemporaryTileFailures);
-                    AddCfg(_debugLevel);
-                    AddCfg(_hostHome);
-                    AddCfg(_mapCruncherHomeSite);
+                    return _configurationDict;
                 }
+
+                _configurationDict = new Dictionary<string, ParseableCfg>();
+                AddCfg(_editionName);
+                AddCfg(_debugModeEnabled);
+                AddCfg(_forceAffineControlVisible);
+                AddCfg(_enableS3);
+                AddCfg(_autoMaxZoomOffset);
+                AddCfg(_usingManifests);
+                AddCfg(_debugRefs);
+                AddCfg(_logInteractiveRenders);
+                AddCfg(_allFilesOption);
+                AddCfg(_suppressFoxitMessages);
+                AddCfg(_enableSnapFeatures);
+                AddCfg(_veFormatUpdateURL);
+                AddCfg(_injectTemporaryTileFailures);
+                AddCfg(_debugLevel);
+                AddCfg(_hostHome);
+                AddCfg(_mapCruncherHomeSite);
 
                 return _configurationDict;
             }
@@ -269,6 +271,11 @@ namespace MSR.CVE.BackMaker
             string codeBase = Assembly.GetExecutingAssembly().GetName().CodeBase;
             string path = Uri.UnescapeDataString(new Uri(codeBase).AbsolutePath);
             string directoryName = Path.GetDirectoryName(path);
+            if (directoryName == null)
+            {
+                return null;
+            }
+
             string path2 = Path.Combine(directoryName, name);
             return new FileStream(path2, FileMode.Open, FileAccess.Read);
         }
@@ -283,13 +290,23 @@ namespace MSR.CVE.BackMaker
                 {
                     inStream = OpenConfigFile(name);
                 }
-                catch (Exception)
+                catch
                 {
+                    // ignored
                 }
 
-                XmlDocument xmlDocument = new XmlDocument();
-                xmlDocument.Load(inStream);
-                XmlNode xmlNode = xmlDocument.GetElementsByTagName("Build")[0];
+                var xmlDocument = new XmlDocument();
+                if (inStream != null)
+                {
+                    xmlDocument.Load(inStream);
+                }
+
+                var xmlNode = xmlDocument.GetElementsByTagName("Build")[0];
+                if (xmlNode.Attributes == null)
+                {
+                    return;
+                }
+
                 string value = xmlNode.Attributes["Configuration"].Value;
                 BuildConfig buildConfig;
                 if (value == "MSR" || value == "Development")
@@ -303,6 +320,11 @@ namespace MSR.CVE.BackMaker
 
                 foreach (XmlNode xmlNode2 in xmlDocument.GetElementsByTagName("Parameter"))
                 {
+                    if (xmlNode2.Attributes == null)
+                    {
+                        continue;
+                    }
+
                     string value2 = xmlNode2.Attributes["Name"].Value;
                     string value3 = xmlNode2.Attributes["Value"].Value;
                     if (buildConfig.configurationDict.ContainsKey(value2))
@@ -334,14 +356,7 @@ namespace MSR.CVE.BackMaker
             }
             catch (Exception)
             {
-                if (AppDomain.CurrentDomain.SetupInformation.ApplicationName.EndsWith(".vshost.exe"))
-                {
-                    theConfig = MSRConfig("Development");
-                }
-                else
-                {
-                    theConfig = VEConfig();
-                }
+                theConfig = AppDomain.CurrentDomain.SetupInformation.ApplicationName.EndsWith(".vshost.exe") ? MSRConfig("Development") : VEConfig();
             }
         }
 
@@ -364,7 +379,7 @@ namespace MSR.CVE.BackMaker
 
         private static BuildConfig MSRConfig(string name)
         {
-            BuildConfig buildConfig = new BuildConfig();
+            var buildConfig = new BuildConfig();
             buildConfig.buildConfiguration = name;
             buildConfig.editionName = buildConfig.buildConfiguration + " Edition Resurrection ;}";
             buildConfig.debugModeEnabled = true;
@@ -380,10 +395,6 @@ namespace MSR.CVE.BackMaker
             buildConfig.hostHome = "http://research.microsoft.com/mapcruncher/scripts/v5.5/";
             buildConfig.mapCruncherHomeSite = "http://research.microsoft.com/mapcruncher/";
             return buildConfig;
-        }
-
-        private void Reconfigure()
-        {
         }
 
         private BuildConfig()
