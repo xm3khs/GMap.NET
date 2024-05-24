@@ -2,7 +2,7 @@
 
 ![GMap.Net](https://raw.githubusercontent.com/judero01col/GMap.NET/master/GMap.ico "this is the result")
 
-GMap.NET Windows Forms & Presentation is an excellent open source, powerful, free and cross-platform .NET control.
+GMap.NET Windows Forms, Presentation & Avalonia is an excellent open source, powerful, free and cross-platform .NET control.
 Allows the use of routing, geocoding, directions and maps from Google, Yahoo!, Bing, OpenStreetMap, ArcGIS, Pergo, SigPac, Yendux, Mapy.cz, Maps.lt, iKarte.lv, NearMap, HereMap, CloudMade, WikiMapia, MapQuest and many more.
 
 # Installing
@@ -12,7 +12,11 @@ https://www.nuget.org/packages/GMap.NET.Core
 
 https://www.nuget.org/packages/GMap.NET.WinForms
 
+https://www.nuget.org/packages/GMap.NET.WinForms.Utils
+
 https://www.nuget.org/packages/GMap.NET.WinPresentation 
+
+https://www.nuget.org/packages/GMap.NET.WinAvalonia 
 
 Are installable using the following command in the Package Manager Console:
 
@@ -23,7 +27,13 @@ PM> Install-Package GMap.NET.Core
 PM> Install-Package GMap.NET.WinForms
 ```
 ```
+PM> Install-Package GMap.NET.WinForms.Utils
+```
+```
 PM> Install-Package GMap.NET.WinPresentation
+```
+```
+PM> Install-Package GMap.NET.WinAvalonia
 ```
 
 If you wish to use the cutting-edge version of gmaps-api-net, then you can clone the repository (or download the zip) and build the class library yourself. This should require minimal set-up, and also allows you to develop extra features for your own use (or to push upstream using a pull request for everyone else to use!).
@@ -32,6 +42,103 @@ If you wish to use the cutting-edge version of gmaps-api-net, then you can clone
 https://github.com/judero01col/GMap.NET/wiki
 
 # Release Notes
+
+## Version 2.1.6
+
+#### GMap.NET.Core
+- New Provider OpenStreetMapGraphHopper
+- Fix OpenStreetMap GetRoute
+- .Net Framework 4.6, 4.7, 4.8 support added
+- .Net Core 3.1, 5.0, 6.0 support added
+
+#### GMap.NET.WinForms
+- Insert and IndexOf are implemented in ObservableCollection
+- .Net Framework 4.6, 4.7, 4.8 support added
+- .Net Core 3.1, 5.0, 6.0 support added
+
+#### GMap.NET.Windows Forms Utils 
+- ObjectExtensions LINQPad 
+Use .DumpMarkers() or .DumpRoute() to add markers or route lines to a map in a new result pane
+
+#### GMap.NET.WinPresentation
+- .Net Framework 4.6, 4.7, 4.8 support added
+- .Net Core 3.1, 5.0, 6.0 support added
+
+#### GMap.NET.Avalonia
+- .Net Framework 4.7, 4.8 support added
+- .Net Core 3.1, 5.0, 6.0 support added
+- New GMap.NET.WinAvalonia library
+
+## Version 2.1.1
+
+#### GMap.NET.Core
+- .Net 6.0 support added
+
+#### GMap.NET.WinForms
+- .Net 6.0 support added
+
+#### GMap.NET.WinPresentation
+- .Net 6.0 support added
+
+#### GMap.NET.Avalonia
+- .Net 6.0 support added
+- New GMap.NET.WinAvalonia library
+
+## Version 2.0.3
+
+#### GMap.NET.Core
+- .Net 5.0 support added
+
+#### GMap.NET.WinForms
+- .Net 5.0 support added
+
+#### GMap.NET.WinPresentation
+- .Net 5.0 support added
+
+## Version 2.0.2
+
+#### GMap.NET.Core
+- .Net Core 3.0 support added
+
+#### GMap.NET.WinForms
+- Fixes, improvements and optimization
+
+#### GMap.NET.WinPresentation
+- Fixes, improvements and optimization
+
+## Version 2.0.2
+
+#### GMap.NET.Core
+- Fixes, improvements and optimization
+
+#### GMap.NET.WinForms
+- Fixes, improvements and optimization
+
+#### GMap.NET.WinPresentation
+- Fixes, improvements and optimization
+
+## Version 2.0.1
+
+#### GMap.NET.Core
+- New Lantmateriet Map Provider (SwedenMapAlternative) : Pseudo Mercator (EPSG:3857) instead of SWEREF99 (EPSG:3006) (Contributed by @jokubokla)
+- Support sending X-Yours-Client header via OSMProvider (Contributed by @shrayasr)
+
+#### GMap.NET.WinForms
+- None
+
+#### GMap.NET.WinPresentation
+- None
+
+## Version 2.0.0
+
+#### GMap.NET.Core
+-  Pocket PC support removed (Contributed by @zgabi)
+
+#### GMap.NET.WinForms
+-  Pocket PC support removed (Contributed by @zgabi)
+
+#### GMap.NET.WinPresentation
+-  Pocket PC support removed (Contributed by @zgabi)
 
 ## Version 1.9.9.5
 

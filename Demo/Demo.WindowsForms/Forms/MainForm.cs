@@ -30,7 +30,7 @@ namespace Demo.WindowsForms
         internal readonly GMapOverlay Polygons = new GMapOverlay("polygons");
 
         // marker
-        GMapMarker _currentMarker;
+        readonly GMapMarker _currentMarker;
 
         // polygons
         GMapPolygon _polygon;
@@ -39,7 +39,7 @@ namespace Demo.WindowsForms
         readonly Random _rnd = new Random();
         readonly DescendingComparer _comparerIpStatus = new DescendingComparer();
         GMapMarkerRect _curentRectMarker;
-        string _mobileGpsLog = string.Empty;
+        readonly string _mobileGpsLog = string.Empty;
         bool _isMouseDown;
         PointLatLng _start;
         PointLatLng _end;
@@ -64,7 +64,7 @@ namespace Demo.WindowsForms
                 //                          
 
                 // set cache mode only if no internet available
-                if (!Stuff.PingNetwork("pingtest.com"))
+                if (!Stuff.PingNetwork("google.com"))
                 {
                     MainMap.Manager.Mode = AccessMode.CacheOnly;
                     MessageBox.Show("No internet connection available, going to CacheOnly mode.", "GMap.NET - Demo.WindowsForms", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -74,6 +74,9 @@ namespace Demo.WindowsForms
                 // Config Map at Startup
                 //----------------------------------------
                 MainMap.MapProvider = GMapProviders.GoogleMap;
+
+                OpenStreetMapGraphHopperProvider.Instance.ApiKey = Stuff.OpenStreetMapsGraphHopperApiKey;
+                GoogleMapProvider.Instance.ApiKey = Stuff.GoogleMapsApiKey;
 
                 // Custom Map Provider
                 //MainMap.MapProvider = GMapProviders.CustomMap;
@@ -91,8 +94,7 @@ namespace Demo.WindowsForms
                 textBoxLat.Text = MainMap.Position.Lat.ToString(CultureInfo.InvariantCulture);
                 textBoxLng.Text = MainMap.Position.Lng.ToString(CultureInfo.InvariantCulture);
                 textBoxGeo.Text = "Lithuania, Vilnius";
-
-                GoogleMapProvider.Instance.ApiKey = Stuff.GoogleMapsApiKey;
+              
 
                 MainMap.ScaleMode = ScaleModes.Fractional;
 
@@ -187,23 +189,26 @@ namespace Demo.WindowsForms
 #endif
 
                 // set current marker
-                _currentMarker = new GMarkerGoogle(MainMap.Position, GMarkerGoogleType.arrow);
-                _currentMarker.IsHitTestVisible = false;
+                _currentMarker = new GMarkerGoogle(MainMap.Position, GMarkerGoogleType.arrow)
+                {
+                    IsHitTestVisible = false
+                };
                 _top.Markers.Add(_currentMarker);
 
 
                 // add my city location for demo
                 // [jokubokla]: The stuff down below doesn't work anymore either, but I leave it in case someone wants to fix it
-                GeoCoderStatusCode status;
-                var pos = GMapProviders.GoogleMap.GetPoint("Lithuania, Vilnius", out status);
+                var pos = MainMap.GeocodingProvider.GetPoint("Lithuania, Vilnius", out var status);
 
                 if (pos != null && status == GeoCoderStatusCode.OK)
                 {
                     _currentMarker.Position = pos.Value;
 
-                    GMapMarker myCity = new GMarkerGoogle(pos.Value, GMarkerGoogleType.green_small);
-                    myCity.ToolTipMode = MarkerTooltipMode.Always;
-                    myCity.ToolTipText = "Welcome to Lithuania! ;}";
+                    GMapMarker myCity = new GMarkerGoogle(pos.Value, GMarkerGoogleType.green_small)
+                    {
+                        ToolTipMode = MarkerTooltipMode.Always,
+                        ToolTipText = "Welcome to Lithuania! ;}"
+                    };
                     Objects.Markers.Add(myCity);
 
                     // add some more points in lithuania
@@ -338,7 +343,7 @@ namespace Demo.WindowsForms
             }
         }
 
-        System.Windows.Forms.Timer _timerPerf = new System.Windows.Forms.Timer();
+        readonly System.Windows.Forms.Timer _timerPerf = new System.Windows.Forms.Timer();
         #endregion
 
 
@@ -347,7 +352,7 @@ namespace Demo.WindowsForms
         // [jokubokla]: The transport demo doesn't seem to work. Presumably because a public transportation
         // webservice in Vilnius has a new API
 
-        BackgroundWorker _transportWorker = new BackgroundWorker();
+        readonly BackgroundWorker _transportWorker = new BackgroundWorker();
 
 
         readonly List<VehicleData> _trolleybus = new List<VehicleData>();
@@ -369,13 +374,13 @@ namespace Demo.WindowsForms
             {
                 foreach (var d in _trolleybus)
                 {
-                    GMapMarker marker;
-
-                    if (!_trolleybusMarkers.TryGetValue(d.Id, out marker))
+                    if (!_trolleybusMarkers.TryGetValue(d.Id, out var marker))
                     {
-                        marker = new GMarkerGoogle(new PointLatLng(d.Lat, d.Lng), GMarkerGoogleType.red_small);
-                        marker.Tag = d.Id;
-                        marker.ToolTipMode = MarkerTooltipMode.OnMouseOver;
+                        marker = new GMarkerGoogle(new PointLatLng(d.Lat, d.Lng), GMarkerGoogleType.red_small)
+                        {
+                            Tag = d.Id,
+                            ToolTipMode = MarkerTooltipMode.OnMouseOver
+                        };
 
                         _trolleybusMarkers[d.Id] = marker;
                         Objects.Markers.Add(marker);
@@ -402,13 +407,13 @@ namespace Demo.WindowsForms
             {
                 foreach (var d in _bus)
                 {
-                    GMapMarker marker;
-
-                    if (!_busMarkers.TryGetValue(d.Id, out marker))
+                    if (!_busMarkers.TryGetValue(d.Id, out var marker))
                     {
-                        marker = new GMarkerGoogle(new PointLatLng(d.Lat, d.Lng), GMarkerGoogleType.green_small);
-                        marker.Tag = d.Id;
-                        marker.ToolTipMode = MarkerTooltipMode.OnMouseOver;
+                        marker = new GMarkerGoogle(new PointLatLng(d.Lat, d.Lng), GMarkerGoogleType.green_small)
+                        {
+                            Tag = d.Id,
+                            ToolTipMode = MarkerTooltipMode.OnMouseOver
+                        };
 
                         _busMarkers[d.Id] = marker;
                         Objects.Markers.Add(marker);
@@ -491,8 +496,10 @@ namespace Demo.WindowsForms
 
             if (_polygon == null)
             {
-                _polygon = new GMapPolygon(polygonPoints, "polygon test");
-                _polygon.IsHitTestVisible = true;
+                _polygon = new GMapPolygon(polygonPoints, "polygon test")
+                {
+                    IsHitTestVisible = true
+                };
                 Polygons.Polygons.Add(_polygon);
             }
             else
@@ -518,8 +525,7 @@ namespace Demo.WindowsForms
         /// <param name="place"></param>
         void AddLocationLithuania(string place)
         {
-            GeoCoderStatusCode status;
-            var pos = GMapProviders.GoogleMap.GetPoint("Lithuania, " + place, out status);
+            var pos = MainMap.GeocodingProvider.GetPoint("Lithuania, " + place, out var status);
             if (pos != null && status == GeoCoderStatusCode.OK)
             {
                 var m = new GMarkerGoogle(pos.Value, GMarkerGoogleType.green);
@@ -543,7 +549,7 @@ namespace Demo.WindowsForms
             {
                 string launch = string.Empty;
 
-                var x = Assembly.GetExecutingAssembly().GetManifestResourceNames();
+                string[] x = Assembly.GetExecutingAssembly().GetManifestResourceNames();
                 foreach (string f in x)
                 {
                     if (f.Contains("leafletjs"))
@@ -573,7 +579,7 @@ namespace Demo.WindowsForms
                             using (var fileStream = File.Create(fileFullPath, (int)stream.Length))
                             {
                                 // Fill the bytes[] array with the stream data
-                                var bytesInStream = new byte[stream.Length];
+                                byte[] bytesInStream = new byte[stream.Length];
                                 stream.Read(bytesInStream, 0, bytesInStream.Length);
 
                                 // Use FileStream object to write to the specified file
@@ -791,7 +797,7 @@ namespace Demo.WindowsForms
                 {
                     var pnew = MainMap.FromLocalToLatLng(e.X, e.Y);
 
-                    var pIndex = (int?)_curentRectMarker.Tag;
+                    int? pIndex = (int?)_curentRectMarker.Tag;
                     if (pIndex.HasValue)
                     {
                         if (pIndex < _polygon.Points.Count)
@@ -831,8 +837,7 @@ namespace Demo.WindowsForms
             {
                 if (item is GMapMarkerRect)
                 {
-                    GeoCoderStatusCode status;
-                    var pos = GMapProviders.GoogleMap.GetPlacemark(item.Position, out status);
+                    var pos = MainMap.GeocodingProvider.GetPlacemark(item.Position, out var status);
                     if (status == GeoCoderStatusCode.OK && pos != null)
                     {
                         var v = item as GMapMarkerRect;
@@ -1015,33 +1020,37 @@ namespace Demo.WindowsForms
         // add test route
         private void btnAddRoute_Click(object sender, EventArgs e)
         {
-            var rp = MainMap.MapProvider as RoutingProvider;
-            if (rp == null)
-            {
-                rp = GMapProviders.OpenStreetMap; // use OpenStreetMap if provider does not implement routing
-            }
+            var rp = MainMap.RoutingProvider;
 
             var route = rp.GetRoute(_start, _end, false, false, (int)MainMap.Zoom);
             if (route != null)
             {
                 // add route
-                var r = new GMapRoute(route.Points, route.Name);
-                r.IsHitTestVisible = true;
+                var r = new GMapRoute(route.Points, route.Name)
+                {
+                    IsHitTestVisible = true
+                };
                 Routes.Routes.Add(r);
 
                 // add route start/end marks
-                GMapMarker m1 = new GMarkerGoogle(_start, GMarkerGoogleType.green_big_go);
-                m1.ToolTipText = "Start: " + route.Name;
-                m1.ToolTipMode = MarkerTooltipMode.Always;
+                GMapMarker m1 = new GMarkerGoogle(_start, GMarkerGoogleType.green_big_go)
+                {
+                    ToolTipText = "Start: " + route.Name,
+                    ToolTipMode = MarkerTooltipMode.Always
+                };
 
-                GMapMarker m2 = new GMarkerGoogle(_end, GMarkerGoogleType.red_big_stop);
-                m2.ToolTipText = "End: " + _end.ToString();
-                m2.ToolTipMode = MarkerTooltipMode.Always;
+                GMapMarker m2 = new GMarkerGoogle(_end, GMarkerGoogleType.red_big_stop)
+                {
+                    ToolTipText = "End: " + _end.ToString(),
+                    ToolTipMode = MarkerTooltipMode.Always
+                };
 
                 Objects.Markers.Add(m1);
                 Objects.Markers.Add(m2);
 
                 MainMap.ZoomAndCenterRoute(r);
+
+                //MainMap.Position = _start;
             }
         }
 
@@ -1062,8 +1071,7 @@ namespace Demo.WindowsForms
             Placemark? p = null;
             if (checkBoxPlacemarkInfo.Checked)
             {
-                GeoCoderStatusCode status;
-                var ret = GMapProviders.GoogleMap.GetPlacemark(_currentMarker.Position, out status);
+                var ret = MainMap.GeocodingProvider.GetPlacemark(_currentMarker.Position, out var status);
                 if (status == GeoCoderStatusCode.OK && ret != null)
                 {
                     p = ret;
@@ -1183,8 +1191,10 @@ namespace Demo.WindowsForms
         // launch static map maker
         private void btnSave_Click(object sender, EventArgs e)
         {
-            var st = new StaticImage(this);
-            st.Owner = this;
+            var st = new StaticImage(this)
+            {
+                Owner = this
+            };
             st.Show();
         }
 
@@ -1423,9 +1433,11 @@ namespace Demo.WindowsForms
 
                                     var rt = new GMapRoute(points, string.Empty);
                                     {
-                                        rt.Stroke = new Pen(Color.FromArgb(144, Color.Red));
-                                        rt.Stroke.Width = 5;
-                                        rt.Stroke.DashStyle = DashStyle.DashDot;
+                                        rt.Stroke = new Pen(Color.FromArgb(144, Color.Red))
+                                        {
+                                            Width = 5,
+                                            DashStyle = DashStyle.DashDot
+                                        };
                                     }
                                     Routes.Routes.Add(rt);
                                 }

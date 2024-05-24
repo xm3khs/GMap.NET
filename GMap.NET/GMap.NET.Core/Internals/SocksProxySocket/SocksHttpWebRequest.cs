@@ -155,7 +155,7 @@ namespace GMap.NET.Internals
             {
                 _requestContentBuffer = new byte[ContentLength];
             }
-            else if (ContentLength == default(long))
+            else if (ContentLength == default)
             {
                 _requestContentBuffer = new byte[int.MaxValue];
             }
@@ -194,7 +194,7 @@ namespace GMap.NET.Internals
             message.AppendFormat("{0} {1} HTTP/1.0\r\nHost: {2}\r\n", Method, RequestUri.PathAndQuery, RequestUri.Host);
 
             // add the headers
-            foreach (var key in Headers.Keys)
+            foreach (object key in Headers.Keys)
             {
                 message.AppendFormat("{0}: {1}\r\n", key, Headers[key.ToString()]);
             }
@@ -247,7 +247,7 @@ namespace GMap.NET.Internals
                 socksConnection.Send(Encoding.UTF8.GetBytes(RequestMessage));
 
                 // read the HTTP reply
-                var buffer = new byte[1024 * 4];
+                byte[] buffer = new byte[1024 * 4];
                 int bytesReceived;
                 bool headerDone = false;
 
@@ -300,8 +300,7 @@ namespace GMap.NET.Internals
 
         private static IPAddress GetProxyIpAddress(Uri proxyUri)
         {
-            IPAddress ipAddress;
-            if (!IPAddress.TryParse(proxyUri.Host, out ipAddress))
+            if (!IPAddress.TryParse(proxyUri.Host, out var ipAddress))
             {
                 try
                 {
@@ -343,7 +342,7 @@ namespace GMap.NET.Internals
         #region Member Variables
 
         WebHeaderCollection _httpResponseHeaders;
-        MemoryStream data;
+        readonly MemoryStream data;
 
         public override long ContentLength
         {
@@ -365,12 +364,12 @@ namespace GMap.NET.Internals
         {
             this.data = data;
 
-            var headerValues = headers.Split(new[] {"\r\n"}, StringSplitOptions.RemoveEmptyEntries);
+            string[] headerValues = headers.Split(new[] {"\r\n"}, StringSplitOptions.RemoveEmptyEntries);
 
             // ignore the first line in the header since it is the HTTP response code
             for (int i = 1; i < headerValues.Length; i++)
             {
-                var headerEntry = headerValues[i].Split(new[] {':'});
+                string[] headerEntry = headerValues[i].Split(new[] {':'});
                 Headers.Add(headerEntry[0], headerEntry[1]);
 
                 switch (headerEntry[0])
@@ -399,15 +398,12 @@ namespace GMap.NET.Internals
 
         public override Stream GetResponseStream()
         {
-            return data != null ? data : Stream.Null;
+            return data ?? Stream.Null;
         }
 
         public override void Close()
         {
-            if (data != null)
-            {
-                data.Close();
-            }
+            data?.Close();
 
             /* the base implementation throws an exception */
         }

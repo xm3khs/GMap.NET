@@ -420,44 +420,6 @@ namespace GMap.NET.MapProviders
 
         #region RoutingProvider
 
-        public MapRoute GetRoute(PointLatLng start, PointLatLng end, bool avoidHighways, bool walkingMode, int zoom)
-        {
-            string tooltip;
-            int numLevels;
-            int zoomFactor;
-            MapRoute ret = null;
-            var points = GetRoutePoints(MakeRouteUrl(start, end, LanguageStr, avoidHighways, walkingMode),
-                zoom,
-                out tooltip,
-                out numLevels,
-                out zoomFactor);
-            if (points != null)
-            {
-                ret = new MapRoute(points, tooltip);
-            }
-
-            return ret;
-        }
-
-        public MapRoute GetRoute(string start, string end, bool avoidHighways, bool walkingMode, int zoom)
-        {
-            string tooltip;
-            int numLevels;
-            int zoomFactor;
-            MapRoute ret = null;
-            var points = GetRoutePoints(MakeRouteUrl(start, end, LanguageStr, avoidHighways, walkingMode),
-                zoom,
-                out tooltip,
-                out numLevels,
-                out zoomFactor);
-            if (points != null)
-            {
-                ret = new MapRoute(points, tooltip);
-            }
-
-            return ret;
-        }
-
         public MapRoute GetRoute(List<PointLatLng> list, bool avoidHighways, bool walkingMode, int zoom)
         {
             string tooltip;
@@ -496,6 +458,84 @@ namespace GMap.NET.MapProviders
             return ret;
         }
 
+        public MapRoute GetRoute(PointLatLng start, PointLatLng end, bool avoidHighways, bool walkingMode, int zoom)
+        {
+            string tooltip;
+            int numLevels;
+            int zoomFactor;
+            MapRoute ret = null;
+            var points = GetRoutePoints(MakeRouteUrl(start, end, LanguageStr, avoidHighways, walkingMode),
+                zoom,
+                out tooltip,
+                out numLevels,
+                out zoomFactor);
+            if (points != null)
+            {
+                ret = new MapRoute(points, tooltip);
+            }
+
+            return ret;
+        }
+
+        public MapRoute GetRoute(string start, string end, bool avoidHighways, bool walkingMode, int zoom)
+        {
+            string tooltip;
+            int numLevels;
+            int zoomFactor;
+            MapRoute ret = null;
+            var points = GetRoutePoints(MakeRouteUrl(start, end, LanguageStr, avoidHighways, walkingMode),
+                zoom,
+                out tooltip,
+                out numLevels,
+                out zoomFactor);
+            if (points != null)
+            {
+                ret = new MapRoute(points, tooltip);
+            }
+
+            return ret;
+        }
+
+        private string MakeRouteUrl(IReadOnlyList<PointLatLng> list, string languageStr, bool avoidHighways, bool walkingMode)
+        {
+            string addition = avoidHighways ? "&avoid=highways" : string.Empty;
+            string mode = walkingMode ? "Walking" : "Driving";
+
+            var wayPoints = new StringBuilder();
+            for (int i = 0; i < list.Count; i++)
+            {
+                var point = list[i];
+                wayPoints.Append($"&wp.{i}={point.Lat},{point.Lng}");
+
+            }
+            return string.Format(CultureInfo.InvariantCulture,
+                RouteUrlFormatListPointLatLng,
+                mode,
+                wayPoints.ToString(),
+                addition,
+                ClientKey); //TODO: check if SessionId could be used
+        }
+
+        private string MakeRouteUrl(IReadOnlyList<string> list, string languageStr, bool avoidHighways, bool walkingMode)
+        {
+            string addition = avoidHighways ? "&avoid=highways" : string.Empty;
+            string mode = walkingMode ? "Walking" : "Driving";
+
+            var wayPoints = new StringBuilder();
+            for (int i = 0; i < list.Count; i++)
+            {
+                string place = list[i];
+                wayPoints.Append($"&wp.{i}={place}");
+            }
+
+            return string.Format(CultureInfo.InvariantCulture,
+                RouteUrlFormatListPointLatLng,
+                mode,
+                wayPoints.ToString(),
+                addition,
+                ClientKey); //TODO: check if SessionId could be used
+        }
+
         string MakeRouteUrl(string start, string end, string language, bool avoidHighways, bool walkingMode)
         {
             string addition = avoidHighways ? "&avoid=highways" : string.Empty;
@@ -523,47 +563,7 @@ namespace GMap.NET.MapProviders
                 end.Lat,
                 end.Lng,
                 addition,
-                ClientKey); //TODO: check if SessionId could be used
-        }
-
-        private string MakeRouteUrl(IReadOnlyList<PointLatLng> list, string languageStr, bool avoidHighways, bool walkingMode)
-        {
-            string addition = avoidHighways ? "&avoid=highways" : string.Empty;
-            string mode = walkingMode ? "Walking" : "Driving";
-
-            var wayPoints = new StringBuilder();
-            for (int i = 0; i < list.Count; i++)
-            {
-                var point = list[i];
-                wayPoints.Append($"&wp.{i}={point.Lat},{point.Lng}");
-            }
-
-            return string.Format(CultureInfo.InvariantCulture,
-                RouteUrlFormatList,
-                mode,
-                wayPoints.ToString(),
-                addition,
-                ClientKey); //TODO: check if SessionId could be used
-        }
-
-        private string MakeRouteUrl(IReadOnlyList<string> list, string languageStr, bool avoidHighways, bool walkingMode)
-        {
-            string addition = avoidHighways ? "&avoid=highways" : string.Empty;
-            string mode = walkingMode ? "Walking" : "Driving";
-
-            var wayPoints = new StringBuilder();
-            for (int i = 0; i < list.Count; i++)
-            {
-                string place = list[i];
-                wayPoints.Append($"&wp.{i}={place}");
-            }
-
-            return string.Format(CultureInfo.InvariantCulture,
-                RouteUrlFormatList,
-                mode,
-                wayPoints.ToString(),
-                addition,
-                ClientKey); //TODO: check if SessionId could be used
+                ClientKey);
         }
 
         List<PointLatLng> GetRoutePoints(string url, int zoom, out string tooltipHtml, out int numLevel,
@@ -681,7 +681,7 @@ namespace GMap.NET.MapProviders
         // example : http://dev.virtualearth.net/REST/V1/Routes/Driving?o=xml&wp.0=44.979035,-93.26493&wp.1=44.943828508257866,-93.09332862496376&optmz=distance&rpo=Points&key=[PROVIDEYOUROWNKEY!!]
         private const string RouteUrlFormatPointLatLng = "http://dev.virtualearth.net/REST/V1/Routes/{0}?o=xml&wp.0={1},{2}&wp.1={3},{4}{5}&optmz=distance&rpo=Points&key={6}";
         private const string RouteUrlFormatPointQueries = "http://dev.virtualearth.net/REST/V1/Routes/{0}?o=xml&wp.0={1}&wp.1={2}{3}&optmz=distance&rpo=Points&key={4}";
-        private const string RouteUrlFormatList = "http://dev.virtualearth.net/REST/V1/Routes/{0}?o=xml{1}{2}&optmz=distance&rpo=Points&key={3}";
+        private const string RouteUrlFormatListPointLatLng = "http://dev.virtualearth.net/REST/V1/Routes/{0}?o=xml{1}{2}&optmz=distance&rpo=Points&key={3}";
 
         #endregion RoutingProvider
 

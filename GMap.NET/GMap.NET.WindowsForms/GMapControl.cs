@@ -3377,51 +3377,51 @@ namespace GMap.NET.WindowsForms
 
         #region Serialization
 
-        static readonly BinaryFormatter BinaryFormatter = new BinaryFormatter();
+        //static readonly BinaryFormatter BinaryFormatter = new BinaryFormatter();
 
         /// <summary>
         ///     Serializes the overlays.
         /// </summary>
         /// <param name="stream">The stream.</param>
-        public void SerializeOverlays(Stream stream)
-        {
-            if (stream == null)
-            {
-                throw new ArgumentNullException(nameof(stream));
-            }
+        //public void SerializeOverlays(Stream stream)
+        //{
+        //    if (stream == null)
+        //    {
+        //        throw new ArgumentNullException(nameof(stream));
+        //    }
 
-            // Create an array from the overlays
-            var overlayArray = new GMapOverlay[Overlays.Count];
-            Overlays.CopyTo(overlayArray, 0);
+        //    // Create an array from the overlays
+        //    var overlayArray = new GMapOverlay[Overlays.Count];
+        //    Overlays.CopyTo(overlayArray, 0);
 
-            // Serialize the overlays
-            BinaryFormatter.Serialize(stream, overlayArray);
-        }
+        //    // Serialize the overlays
+        //    BinaryFormatter.Serialize(stream, overlayArray);
+        //}
 
         /// <summary>
         ///     De-serializes the overlays.
         /// </summary>
         /// <param name="stream">The stream.</param>
-        public void DeserializeOverlays(Stream stream)
-        {
-            if (stream == null)
-            {
-                throw new ArgumentNullException(nameof(stream));
-            }
+        //public void DeserializeOverlays(Stream stream)
+        //{
+        //    if (stream == null)
+        //    {
+        //        throw new ArgumentNullException(nameof(stream));
+        //    }
 
-            // De-serialize the overlays
-            if (BinaryFormatter.Deserialize(stream) is GMapOverlay[] overlayArray)
-            {
-                // Populate the collection of overlays.
-                foreach (var overlay in overlayArray)
-                {
-                    overlay.Control = this;
-                    Overlays.Add(overlay);
-                }
-            }
+        //    // De-serialize the overlays
+        //    if (BinaryFormatter.Deserialize(stream) is GMapOverlay[] overlayArray)
+        //    {
+        //        // Populate the collection of overlays.
+        //        foreach (var overlay in overlayArray)
+        //        {
+        //            overlay.Control = this;
+        //            Overlays.Add(overlay);
+        //        }
+        //    }
 
-            ForceUpdateOverlays();
-        }
+        //    ForceUpdateOverlays();
+        //}
 
         #endregion
     }

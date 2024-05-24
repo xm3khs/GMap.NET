@@ -28,9 +28,7 @@ namespace GMap.NET.MapProviders
         public readonly string Server /* ;}~~~~ */ = Stuff.GString( /*{^_^}*/"gosr2U13BoS+bXaIxt6XWg==" /*d{'_'}b*/);
         public readonly string ServerChina /* ;}~ */ = Stuff.GString( /*{^_^}*/"gosr2U13BoTEJoJJuO25gQ==" /*d{'_'}b*/);
         public readonly string ServerKorea /* ;}~~ */ = Stuff.GString( /*{^_^}*/"8ZVBOEsBinzi+zmP7y7pPA==" /*d{'_'}b*/);
-
-        public readonly string ServerKoreaKr /* ;}~ */ =
-            Stuff.GString( /*{^_^}*/"gosr2U13BoQyz1gkC4QLfg==" /*d{'_'}b*/);
+        public readonly string ServerKoreaKr /* ;}~ */ = Stuff.GString( /*{^_^}*/"gosr2U13BoQyz1gkC4QLfg==" /*d{'_'}b*/);
 
         public string SecureWord = "Galileo";
 
@@ -922,14 +920,14 @@ namespace GMap.NET.MapProviders
             try
             {
                 string kml = GMaps.Instance.UseDirectionsCache
-                    ? Cache.Instance.GetContent(url, CacheType.DirectionsCache, TimeSpan.FromHours(TTLCache))
+                    ? Cache.Instance.GetContent(url, CacheType.DirectionsCache, TimeSpan.FromHours(TTLCache)) 
                     : string.Empty;
                 bool cache = false;
 
                 if (string.IsNullOrEmpty(kml))
                 {
-                    kml = GetContentUsingHttp(!string.IsNullOrEmpty(ClientId) ? GetSignedUri(url) :
-                        !string.IsNullOrEmpty(ApiKey) ? url + "&key=" + ApiKey : url);
+                    kml = GetContentUsingHttp(!string.IsNullOrEmpty(ClientId) ? GetSignedUri(url) : 
+                        (!string.IsNullOrEmpty(ApiKey) ? url + "&key=" + ApiKey : url));
 
                     if (!string.IsNullOrEmpty(kml))
                     {
@@ -965,11 +963,11 @@ namespace GMap.NET.MapProviders
                                     Debug.WriteLine("copyrights: " + direction.Copyrights);
                                 }
 
-                                if (directionResult.routes[0].overview_polyline != null &&
+                                if (directionResult.routes[0].overview_polyline != null && 
                                     directionResult.routes[0].overview_polyline.points != null)
                                 {
-                                    direction.Route = new List<PointLatLng>();
-                                    PureProjection.PolylineDecode(direction.Route,
+                                    direction.Route = new List<PointLatLng>();                                    
+                                    PureProjection.PolylineDecode(direction.Route, 
                                         directionResult.routes[0].overview_polyline.points);
                                 }
 
@@ -989,9 +987,9 @@ namespace GMap.NET.MapProviders
 
                                     if (directionResult.routes[0].legs[0].start_location != null)
                                     {
-                                        direction.StartLocation.Lat =
+                                        direction.StartLocation.Lat = 
                                             directionResult.routes[0].legs[0].start_location.lat;
-                                        direction.StartLocation.Lng =
+                                        direction.StartLocation.Lng = 
                                             directionResult.routes[0].legs[0].start_location.lng;
                                     }
 
@@ -1067,7 +1065,6 @@ namespace GMap.NET.MapProviders
                 ret = DirectionsStatusCode.EXCEPTION_IN_CODE;
                 Debug.WriteLine("GetDirectionsUrl: " + ex);
             }
-
             return ret;
         }
 

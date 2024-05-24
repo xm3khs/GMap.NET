@@ -31,7 +31,7 @@ namespace MSR.CVE.BackMaker
 
         private class SetupFailed : Exception
         {
-            private string prettyMessage;
+            private readonly string prettyMessage;
 
             public SetupFailed(bool pretty, string m) : base(m)
             {
@@ -54,14 +54,14 @@ namespace MSR.CVE.BackMaker
 
         private class LayerApplierMaker
         {
-            private CachePackage cachePackage;
+            private readonly CachePackage cachePackage;
 
-            private Dictionary<IRenderableSource, OneLayerBoundApplier> dict =
+            private readonly Dictionary<IRenderableSource, OneLayerBoundApplier> dict =
                 new Dictionary<IRenderableSource, OneLayerBoundApplier>();
 
             public LayerApplierMaker(CachePackage cachePackage)
             {
-                cachePackage = cachePackage;
+                this.cachePackage = cachePackage;
             }
 
             public OneLayerBoundApplier MakeApplier(IRenderableSource source, Layer layer)
@@ -103,25 +103,25 @@ namespace MSR.CVE.BackMaker
         private const int ErrorMessageLimit = 100;
         private const int RangeQuerySizeLimit = 100;
         private const string thumbnailPathPrefix = "thumbnails";
-        private Mashup _mashupDocument_UseScratchCopy;
+        private readonly Mashup _mashupDocument_UseScratchCopy;
         private Mashup mashupScratchCopy;
         private readonly RenderUIIfc _renderUI;
-        private FlushRenderedTileCachePackageDelegate flushRenderedTileCachePackage;
-        private MapTileSourceFactory mapTileSourceFactory;
+        private readonly FlushRenderedTileCachePackageDelegate flushRenderedTileCachePackage;
+        private readonly MapTileSourceFactory mapTileSourceFactory;
         private bool disposeFlag;
         private States _state;
         private bool pauseRenderingFlag;
 
-        private EventWaitHandle startRenderEvent =
+        private readonly EventWaitHandle startRenderEvent =
             new CountedEventWaitHandle(false, EventResetMode.AutoReset, "RenderState.startRenderEvent");
 
-        private MercatorCoordinateSystem mercatorCoordinateSystem = new MercatorCoordinateSystem();
+        private readonly MercatorCoordinateSystem mercatorCoordinateSystem = new MercatorCoordinateSystem();
         private RenderOutputMethod renderOutput;
         private List<TileRectangle> boundsList;
         private RangeQueryData rangeQueryData;
         private Queue<RenderWorkUnit> renderQueue = new Queue<RenderWorkUnit>();
-        private Dictionary<string, bool> credits = new Dictionary<string, bool>();
-        private bool complainedAboutInsaneTileCount;
+        private readonly Dictionary<string, bool> credits = new Dictionary<string, bool>();
+        private readonly bool complainedAboutInsaneTileCount;
         private int estimateProgressLayerCount;
         private int estimateProgressSourceMapCount;
         private int estimateProgressSourceMapsThisLayer = 1;
@@ -129,8 +129,8 @@ namespace MSR.CVE.BackMaker
         private Uri sampleHTMLUri;
         private int initialQueueSize;
         private string statusString;
-        private List<string> postedMessages = new List<string>();
-        private RenderComplaintBox complaintBox;
+        private readonly List<string> postedMessages = new List<string>();
+        private readonly RenderComplaintBox complaintBox;
         private ImageRef lastRenderedImageRef;
         private string[] lastRenderedImageLabel = new string[0];
         private StreamWriter logWriter;
@@ -170,8 +170,10 @@ namespace MSR.CVE.BackMaker
             if (logWriter == null)
             {
                 logWriter =
-                    new StreamWriter(new FileStream(FileUtilities.MakeTempFilename(".", "RenderLog"), FileMode.Create));
-                logWriter.AutoFlush = true;
+                    new StreamWriter(new FileStream(FileUtilities.MakeTempFilename(".", "RenderLog"), FileMode.Create))
+                    {
+                        AutoFlush = true
+                    };
             }
         }
 
@@ -261,10 +263,7 @@ namespace MSR.CVE.BackMaker
 
         private void PostStatus(string statusString)
         {
-            if (logWriter != null)
-            {
-                logWriter.Write("STATUS: " + statusString + "\n");
-            }
+            logWriter?.Write("STATUS: " + statusString + "\n");
 
             this.statusString = statusString;
             _renderUI.uiChanged();
@@ -272,10 +271,7 @@ namespace MSR.CVE.BackMaker
 
         public void PostMessage(string message)
         {
-            if (logWriter != null)
-            {
-                logWriter.Write(message + "\n");
-            }
+            logWriter?.Write(message + "\n");
 
             postedMessages.Add(message);
             _renderUI.uiChanged();
@@ -310,10 +306,7 @@ namespace MSR.CVE.BackMaker
                 Monitor.Exit(this);
             }
 
-            if (imageRef2 != null)
-            {
-                imageRef2.Dispose();
-            }
+            imageRef2?.Dispose();
 
             lastRenderedImageLabel = new[] {layer.displayName, sourceMapName, address.ToString()};
             _renderUI.uiChanged();
@@ -409,10 +402,7 @@ namespace MSR.CVE.BackMaker
                         _renderUI.uiChanged();
                     }
 
-                    if (logWriter != null)
-                    {
-                        logWriter.Write("Completed: " + renderWorkUnit + "\n");
-                    }
+                    logWriter?.Write("Completed: " + renderWorkUnit + "\n");
                 }
 
                 CommitManifest();
@@ -499,10 +489,10 @@ namespace MSR.CVE.BackMaker
                             break;
                         }
 
-                        if (current2 is CompositeTileUnit)
+                        if (current2 is CompositeTileUnit unit)
                         {
                             rangeQueryData[current]
-                                .Add(new RangeDescriptor(((CompositeTileUnit)current2).GetTileAddress()));
+                                .Add(new RangeDescriptor(unit.GetTileAddress()));
                         }
                     }
 
@@ -547,10 +537,9 @@ namespace MSR.CVE.BackMaker
             {
                 var renderToOptions = mashupScratchCopy.GetRenderOptions().renderToOptions;
                 RenderOutputMethod baseMethod;
-                if (renderToOptions is RenderToFileOptions)
+                if (renderToOptions is RenderToFileOptions renderToFileOptions)
                 {
-                    var renderToFileOptions = (RenderToFileOptions)renderToOptions;
-                    if (renderToFileOptions.outputFolder == "")
+                    if (string.IsNullOrWhiteSpace(renderToFileOptions.outputFolder))
                     {
                         throw new SetupFailed(true, "Please select an output folder.");
                     }
@@ -617,9 +606,9 @@ namespace MSR.CVE.BackMaker
 
         private void CommitManifest()
         {
-            if (renderOutput is ManifestOutputMethod)
+            if (renderOutput is ManifestOutputMethod method)
             {
-                ((ManifestOutputMethod)renderOutput).CommitChanges();
+                method.CommitChanges();
             }
         }
 
@@ -682,8 +671,10 @@ namespace MSR.CVE.BackMaker
             {
                 CheckSignal();
                 PostStatus(string.Format("(opening {0})", current.displayName));
-                var sourceMapRenderInfo = new SourceMapRenderInfo();
-                sourceMapRenderInfo.sourceMap = current;
+                var sourceMapRenderInfo = new SourceMapRenderInfo
+                {
+                    sourceMap = current
+                };
                 if (!current.ReadyToLock())
                 {
                     PostMessage(string.Format("Skipping SourceMap {0} because it's not ready to lock.",
@@ -907,15 +898,15 @@ namespace MSR.CVE.BackMaker
                     }
                 }
 
-                if (!(mashupScratchCopy.GetRenderOptions().renderToOptions is RenderToFileOptions))
+                if (!(mashupScratchCopy.GetRenderOptions().renderToOptions is RenderToFileOptions options))
                 {
                     D.Sayf(0, "TODO: Generalize to S3 by recording layer manifest", new object[0]);
                 }
                 else
                 {
                     string outputFolder =
-                        ((RenderToFileOptions)mashupScratchCopy.GetRenderOptions().renderToOptions).outputFolder;
-                    var directories = Directory.GetDirectories(outputFolder, "Layer_*");
+                        options.outputFolder;
+                    string[] directories = Directory.GetDirectories(outputFolder, "Layer_*");
                     for (int i = 0; i < directories.Length; i++)
                     {
                         string path = directories[i];

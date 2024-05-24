@@ -32,76 +32,7 @@ namespace GMap.NET.CacheProviders
         }
 
         static System.Reflection.Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
-        {
-            //if (args.Name.StartsWith("System.Data.SQLite", StringComparison.OrdinalIgnoreCase))
-            //{
-            //    string appDataDir = CacheLocator.GetApplicationDataFolderPath();
-
-            //    if (string.IsNullOrEmpty(appDataDir))
-            //    {
-            //        return null;
-            //    }
-
-            //    string dllDir = appDataDir + "DllCache" + Path.DirectorySeparatorChar;
-            //    string dll = dllDir + "SQLite_v101_NET" + Environment.Version.Major + "_" + (IntPtr.Size == 8 ? "x64" : "x86") + Path.DirectorySeparatorChar + "System.Data.SQLite.DLL";
-
-            //    if (!File.Exists(dll))
-            //    {
-            //        string dir = Path.GetDirectoryName(dll);
-
-            //        if (!Directory.Exists(dir))
-            //            Directory.CreateDirectory(dir);
-
-            //        Debug.WriteLine("Saving to DllCache: " + dll);
-
-            //        if (Environment.Version.Major == 2)
-            //        {
-            //            using (MemoryStream gzipDll = new MemoryStream((IntPtr.Size == 8 ? NET.Core.Properties.Resources.System_Data_SQLite_x64_NET2_dll : NET.Core.Properties.Resources.System_Data_SQLite_x86_NET2_dll)))
-            //            {
-            //                using (var gs = new System.IO.Compression.GZipStream(gzipDll, System.IO.Compression.CompressionMode.Decompress))
-            //                {
-            //                    using (MemoryStream exctDll = new MemoryStream())
-            //                    {
-            //                        byte[] tmp = new byte[1024 * 256];
-            //                        int r = 0;
-
-            //                        while ((r = gs.Read(tmp, 0, tmp.Length)) > 0)
-            //                        {
-            //                            exctDll.Write(tmp, 0, r);
-            //                        }
-
-            //                        File.WriteAllBytes(dll, exctDll.ToArray());
-            //                    }
-            //                }
-            //            }
-            //        }
-            //        else if (Environment.Version.Major == 4)
-            //        {
-            //            using (MemoryStream gzipDll = new MemoryStream((IntPtr.Size == 8 ? NET.Core.Properties.Resources.System_Data_SQLite_x64_NET4_dll : NET.Core.Properties.Resources.System_Data_SQLite_x86_NET4_dll)))
-            //            {
-            //                using (var gs = new System.IO.Compression.GZipStream(gzipDll, System.IO.Compression.CompressionMode.Decompress))
-            //                {
-            //                    using (MemoryStream exctDll = new MemoryStream())
-            //                    {
-            //                        byte[] tmp = new byte[1024 * 256];
-            //                        int r = 0;
-
-            //                        while ((r = gs.Read(tmp, 0, tmp.Length)) > 0)
-            //                        {
-            //                            exctDll.Write(tmp, 0, r);
-            //                        }
-
-            //                        File.WriteAllBytes(dll, exctDll.ToArray());
-            //                    }
-            //                }
-            //            }
-            //        }
-            //    }
-
-            //    Debug.WriteLine("Assembly.LoadFile: " + dll);
-
-            //    return System.Reflection.Assembly.LoadFile(dll);
-            //}
+        {            
             return null;
         }
 
@@ -190,7 +121,7 @@ namespace GMap.NET.CacheProviders
                 RebuildFinnalSelect();
 
                 // attach all databases from main cache location
-                var dbs = Directory.GetFiles(_dir, "*.gmdb", SearchOption.AllDirectories);
+                string[] dbs = Directory.GetFiles(_dir, "*.gmdb", SearchOption.AllDirectories);
                 foreach (string d in dbs)
                 {
                     if (d != _db)
@@ -206,8 +137,8 @@ namespace GMap.NET.CacheProviders
         void CheckPreAllocation()
         {
             {
-                var pageSizeBytes = new byte[2];
-                var freePagesBytes = new byte[4];
+                byte[] pageSizeBytes = new byte[2];
+                byte[] freePagesBytes = new byte[4];
 
                 lock (this)
                 {
@@ -811,7 +742,7 @@ namespace GMap.NET.CacheProviders
                                 if (rd.Read())
                                 {
                                     long length = rd.GetBytes(0, 0, null, 0, 0);
-                                    var tile = new byte[length];
+                                    byte[] tile = new byte[length];
                                     rd.GetBytes(0, 0, tile, 0, tile.Length);
                                     {
                                         if (GMapProvider.TileImageProxy != null)

@@ -133,10 +133,7 @@ namespace ConsoleApplication
 
                     string qk = Path.GetFileNameWithoutExtension(i);
 
-                    int x = 0;
-                    int y = 0;
-                    int z = 0;
-                    GMapProviders.BingMap.QuadKeyToTileXY(qk, out x, out y, out z);
+                    GMapProviders.BingMap.QuadKeyToTileXY(qk, out int x, out int y, out int z);
 
                     Debug.WriteLine(c++ + " of " + total + ", x: " + x + ", y: " + y + ", z: " + z);
 
@@ -153,10 +150,10 @@ namespace ConsoleApplication
 
             if (false)
             {
-                var dirs = Directory.GetDirectories(@"D:\Temp\tmap\TOP50LKS");
+                string[] dirs = Directory.GetDirectories(@"D:\Temp\tmap\TOP50LKS");
                 foreach (string dir in dirs)
                 {
-                    var jpg = Directory.GetFiles(dir, "*.jpg");
+                    string[] jpg = Directory.GetFiles(dir, "*.jpg");
 
                     string files = Path.GetFileName(dir).Replace(" ", string.Empty) + " ";
 
@@ -207,20 +204,17 @@ namespace ConsoleApplication
 
             if (false)
             {
-                GeoCoderStatusCode status;
-                var pp1 = GMapProviders.GoogleMap.GetPoint("Lithuania, Seda", out status);
+                var pp1 = GMapProviders.GoogleMap.GetPoint("Lithuania, Seda", out var status);
 
                 return;
             }
 
             if (false)
             {
-                GeoCoderStatusCode status;
-                var pp1 = GMapProviders.GoogleMap.GetPoint("Lithuania, vilnius, Antakalnio g. 67-35", out status);
+                var pp1 = GMapProviders.GoogleMap.GetPoint("Lithuania, vilnius, Antakalnio g. 67-35", out var status);
 
-                List<Placemark> plc = null;
                 //var st = GMapProviders.GoogleMap.GetPlacemarks(new PointLatLng(54.6961334816182, 25.2985095977782), out plc);
-                var st = GMapProviders.GoogleMap.GetPlacemarks(pp1.Value, out plc);
+                var st = GMapProviders.GoogleMap.GetPlacemarks(pp1.Value, out var plc);
 
                 if (st == GeoCoderStatusCode.OK && plc != null)
                 {
@@ -249,15 +243,13 @@ namespace ConsoleApplication
 
                 //Debug.WriteLine(GMapProviders.BingHybridMap.Name + ":" + GMapProviders.BingHybridMap.DbId);
 
-                GeoCoderStatusCode status;
-                var pp1 = GMapProviders.GoogleMap.GetPoint("Lithuania,Vilnius", out status);
+                var pp1 = GMapProviders.GoogleMap.GetPoint("Lithuania,Vilnius", out var status);
                 var pp2 = GMapProviders.GoogleMap.GetPoint("Lithuania,Kaunas", out status);
                 if (pp1.HasValue && pp2.HasValue)
                 {
-                    GDirections s;
                     //var x = GMapProviders.GoogleMap.GetDirections(out s, "Lithuania,Vilnius", "Lithuania,Kaunas", false, false, false, true);
                     //if(x == DirectionsStatusCode.OK)
-                    var x = GMapProviders.GoogleMap.GetDirections(out s,
+                    var x = GMapProviders.GoogleMap.GetDirections(out GDirections s,
                         pp1.Value,
                         pp2.Value,
                         false,
@@ -327,8 +319,7 @@ namespace ConsoleApplication
                 {
                     int zoom = 4;
                     var px = p.FromPixelToTileXY(p.FromLatLngToPixel(pos, zoom));
-                    Exception ex = null;
-                    var img = GMaps.Instance.GetImageFrom(GMapProviders.LithuaniaMap, px, zoom, out ex);
+                    var img = GMaps.Instance.GetImageFrom(GMapProviders.LithuaniaMap, px, zoom, out var ex);
                     File.WriteAllBytes(zoom + "z-" + px + ".png", img.Data.ToArray());
                 }
 
@@ -425,10 +416,10 @@ namespace ConsoleApplication
                 var p2 = new PointLatLng(-34.608, -58.348);
 
                 //Sets up a array to contain the x and y coordinates
-                var xy = new double[4] {p1.Lng, p1.Lat, p2.Lng, p2.Lat};
+                double[] xy = new double[4] {p1.Lng, p1.Lat, p2.Lng, p2.Lat};
 
                 //An array for the z coordinate
-                var z = new double[1];
+                double[] z = new double[1];
                 z[0] = 1;
 
                 var pStart = KnownCoordinateSystems.Geographic.World.WGS1984;

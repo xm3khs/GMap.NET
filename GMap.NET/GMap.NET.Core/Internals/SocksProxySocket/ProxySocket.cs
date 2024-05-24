@@ -154,7 +154,7 @@ namespace Org.Mentalis.Network.ProxySocket
         ///     If you use this method with a SOCKS4 server, it will let the server resolve the hostname. Not all SOCKS4
         ///     servers support this 'remote DNS' though.
         /// </remarks>
-        public void Connect(string host, int port)
+        public new void Connect(string host, int port)
         {
             if (host == null)
                 throw new ArgumentNullException("<host> cannot be null.");
@@ -224,7 +224,7 @@ namespace Org.Mentalis.Network.ProxySocket
         /// <exception cref="ArgumentException">The port parameter is invalid.</exception>
         /// <exception cref="SocketException">An operating system error occurs while creating the Socket.</exception>
         /// <exception cref="ObjectDisposedException">The Socket has been closed.</exception>
-        public IAsyncResult BeginConnect(string host, int port, AsyncCallback callback, object state)
+        public new IAsyncResult BeginConnect(string host, int port, AsyncCallback callback, object state)
         {
             if (host == null || callback == null)
                 throw new ArgumentNullException();
@@ -348,8 +348,7 @@ namespace Org.Mentalis.Network.ProxySocket
                 Close();
             ToThrow = error;
             AsyncResult.Reset();
-            if (_callBack != null)
-                _callBack(AsyncResult);
+            _callBack?.Invoke(AsyncResult);
         }
 
         /// <summary>
@@ -383,9 +382,7 @@ namespace Org.Mentalis.Network.ProxySocket
             }
             set
             {
-                if (value == null)
-                    throw new ArgumentNullException();
-                _proxyUser = value;
+                _proxyUser = value ?? throw new ArgumentNullException();
             }
         }
 
@@ -402,9 +399,7 @@ namespace Org.Mentalis.Network.ProxySocket
             }
             set
             {
-                if (value == null)
-                    throw new ArgumentNullException();
-                _proxyPass = value;
+                _proxyPass = value ?? throw new ArgumentNullException();
             }
         }
 

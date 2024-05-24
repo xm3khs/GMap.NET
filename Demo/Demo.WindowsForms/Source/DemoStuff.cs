@@ -57,7 +57,8 @@ namespace Demo.WindowsForms
     public class Stuff
     {
         //public const string GoogleMapsApiKey = "AIzaSyCoz0fVRmn6L-zZuLXnIXtRcGLKf2PHI5Q"; // this key is not working
-        public const string GoogleMapsApiKey = "AIzaSyAmO6pIPTz0Lt8lmYZEIAaixitKjq-4WlB"; // from Demo.Geocoding project
+        public const string GoogleMapsApiKey = "AIzaSyDn8qjiDcnGHOriIrmCnbHs8RK4h_WoGpg"; // from Demo.Geocoding project
+        public const string OpenStreetMapsGraphHopperApiKey = "c2aa79b0-4ee1-4ca3-86e6-f6a013de26d2"; // from Demo.Geocoding project
 
         public static bool PingNetwork(string hostNameOrAddress)
         {
@@ -65,8 +66,8 @@ namespace Demo.WindowsForms
 
             using (var p = new Ping())
             {
-                var buffer = Encoding.ASCII.GetBytes("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-                int timeout = 4444; // 4s
+                byte[] buffer = Encoding.ASCII.GetBytes("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+                int timeout = 5000; // 5sg
 
                 try
                 {
@@ -265,11 +266,11 @@ namespace Demo.WindowsForms
 
             if (!string.IsNullOrEmpty(xml))
             {
-                var items = xml.Split('&');
+                string[] items = xml.Split('&');
 
                 foreach (string it in items)
                 {
-                    var sit = it.Split(';');
+                    string[] sit = it.Split(';');
                     if (sit.Length == 8)
                     {
                         var d = new VehicleData();
@@ -417,7 +418,7 @@ namespace Demo.WindowsForms
                     bounds.Left,
                     bounds.Right));
 
-                var items = response.Split(new[] {"\n,"}, StringSplitOptions.RemoveEmptyEntries);
+                string[] items = response.Split(new[] {"\n,"}, StringSplitOptions.RemoveEmptyEntries);
 
                 //int i = 0;
                 foreach (string it in items)
@@ -429,7 +430,7 @@ namespace Demo.WindowsForms
                         //Debug.WriteLine(++i + " -> " + d);
 
                         // BAW576":["400803",48.9923,1.8083,"144","36950","462","0512","LFPO","A319","G-EUPC"
-                        var par = d.Split(',');
+                        string[] par = d.Split(',');
                         if (par.Length >= 9)
                         {
                             int id = Convert.ToInt32(par[0], 16);
