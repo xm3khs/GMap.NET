@@ -155,7 +155,7 @@ namespace GMap.NET.Internals
             {
                 _requestContentBuffer = new byte[ContentLength];
             }
-            else if (ContentLength == default(long))
+            else if (ContentLength == default)
             {
                 _requestContentBuffer = new byte[int.MaxValue];
             }
@@ -300,8 +300,7 @@ namespace GMap.NET.Internals
 
         private static IPAddress GetProxyIpAddress(Uri proxyUri)
         {
-            IPAddress ipAddress;
-            if (!IPAddress.TryParse(proxyUri.Host, out ipAddress))
+            if (!IPAddress.TryParse(proxyUri.Host, out var ipAddress))
             {
                 try
                 {
@@ -343,7 +342,7 @@ namespace GMap.NET.Internals
         #region Member Variables
 
         WebHeaderCollection _httpResponseHeaders;
-        MemoryStream data;
+        readonly MemoryStream data;
 
         public override long ContentLength
         {
@@ -399,15 +398,12 @@ namespace GMap.NET.Internals
 
         public override Stream GetResponseStream()
         {
-            return data != null ? data : Stream.Null;
+            return data ?? Stream.Null;
         }
 
         public override void Close()
         {
-            if (data != null)
-            {
-                data.Close();
-            }
+            data?.Close();
 
             /* the base implementation throws an exception */
         }

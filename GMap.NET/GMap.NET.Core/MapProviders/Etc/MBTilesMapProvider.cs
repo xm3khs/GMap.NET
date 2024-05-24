@@ -138,12 +138,12 @@ namespace GMap.NET.MapProviders
         /// <summary>
         /// The lowest zoom level for which the tileset provides data
         /// </summary>
-        public int MinZoom { get; private set; }
+        public new int MinZoom { get; private set; }
 
         /// <summary>
         /// The highest zoom level for which the tileset provides data
         /// </summary>
-        public int MaxZoom { get; private set; }
+        public new int MaxZoom { get; private set; }
 
         /// <summary>
         /// An attribution string, which explains the sources of data and/or style for the map.

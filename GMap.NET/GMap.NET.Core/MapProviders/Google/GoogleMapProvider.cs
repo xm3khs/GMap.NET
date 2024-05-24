@@ -920,14 +920,14 @@ namespace GMap.NET.MapProviders
             try
             {
                 string kml = GMaps.Instance.UseDirectionsCache
-                    ? Cache.Instance.GetContent(url, CacheType.DirectionsCache, TimeSpan.FromHours(TTLCache))
+                    ? Cache.Instance.GetContent(url, CacheType.DirectionsCache, TimeSpan.FromHours(TTLCache)) 
                     : string.Empty;
                 bool cache = false;
 
                 if (string.IsNullOrEmpty(kml))
                 {
-                    kml = GetContentUsingHttp(!string.IsNullOrEmpty(ClientId) ? GetSignedUri(url) :
-                        !string.IsNullOrEmpty(ApiKey) ? url + "&key=" + ApiKey : url);
+                    kml = GetContentUsingHttp(!string.IsNullOrEmpty(ClientId) ? GetSignedUri(url) : 
+                        (!string.IsNullOrEmpty(ApiKey) ? url + "&key=" + ApiKey : url));
 
                     if (!string.IsNullOrEmpty(kml))
                     {
@@ -963,11 +963,11 @@ namespace GMap.NET.MapProviders
                                     Debug.WriteLine("copyrights: " + direction.Copyrights);
                                 }
 
-                                if (directionResult.routes[0].overview_polyline != null &&
+                                if (directionResult.routes[0].overview_polyline != null && 
                                     directionResult.routes[0].overview_polyline.points != null)
                                 {
-                                    direction.Route = new List<PointLatLng>();
-                                    PureProjection.PolylineDecode(direction.Route,
+                                    direction.Route = new List<PointLatLng>();                                    
+                                    PureProjection.PolylineDecode(direction.Route, 
                                         directionResult.routes[0].overview_polyline.points);
                                 }
 
@@ -987,9 +987,9 @@ namespace GMap.NET.MapProviders
 
                                     if (directionResult.routes[0].legs[0].start_location != null)
                                     {
-                                        direction.StartLocation.Lat =
+                                        direction.StartLocation.Lat = 
                                             directionResult.routes[0].legs[0].start_location.lat;
-                                        direction.StartLocation.Lng =
+                                        direction.StartLocation.Lng = 
                                             directionResult.routes[0].legs[0].start_location.lng;
                                     }
 

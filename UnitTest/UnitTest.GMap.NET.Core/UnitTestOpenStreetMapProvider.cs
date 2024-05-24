@@ -1,10 +1,5 @@
 ﻿using GMap.NET;
 using GMap.NET.MapProviders;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace UnitTest.GMap.NET.Core
 {
@@ -16,9 +11,7 @@ namespace UnitTest.GMap.NET.Core
         {
             var mapProvider = GMapProviders.OpenStreetMap;
 
-            GeoCoderStatusCode status;
-
-            var point = mapProvider.GetPoint("Barranquilla", out status);
+            var point = mapProvider.GetPoint("Barranquilla", out var status);
 
             Assert.AreEqual(status, GeoCoderStatusCode.OK);
             Assert.AreNotEqual(point, null);
@@ -29,10 +22,7 @@ namespace UnitTest.GMap.NET.Core
         {
             var mapProvider = GMapProviders.OpenStreetMap;
 
-            GeoCoderStatusCode status;
-            List<PointLatLng> pointList;
-
-            status = mapProvider.GetPoints("Barranquilla", out pointList);
+            var status = mapProvider.GetPoints("Barranquilla", out var pointList);
 
             Assert.AreEqual(status, GeoCoderStatusCode.OK);
             Assert.AreNotEqual(pointList, null);
@@ -43,16 +33,13 @@ namespace UnitTest.GMap.NET.Core
         {
             var mapProvider = GMapProviders.OpenStreetMap;
 
-            GeoCoderStatusCode status;
-            List<PointLatLng> pointList;
-
             var location = new PointLatLng { Lat = 10.98335, Lng = -74.802319 };
-            var point = mapProvider.GetPlacemark(location, out status);
+            var point = mapProvider.GetPlacemark(location, out var status);
 
             Assert.AreEqual(status, GeoCoderStatusCode.OK);
             Assert.AreNotEqual(point, null);            
 
-            status = mapProvider.GetPoints(point.Value, out pointList);
+            status = mapProvider.GetPoints(point.Value, out var pointList);
 
             Assert.AreEqual(status, GeoCoderStatusCode.OK);
             Assert.AreNotEqual(pointList, null);
@@ -63,11 +50,9 @@ namespace UnitTest.GMap.NET.Core
         {
             var mapProvider = GMapProviders.OpenStreetMap;
 
-            GeoCoderStatusCode status;
-
             var location = new PointLatLng { Lat = 10.98335, Lng = -74.802319 };
 
-            var point = mapProvider.GetPlacemark(location, out status);
+            var point = mapProvider.GetPlacemark(location, out var status);
 
             Assert.AreEqual(status, GeoCoderStatusCode.OK);
             Assert.AreNotEqual(point, null);
@@ -78,11 +63,9 @@ namespace UnitTest.GMap.NET.Core
         {
             var mapProvider = GMapProviders.OpenStreetMap;
 
-            List<Placemark> placemarkList;
-
             var location = new PointLatLng { Lat = 10.98335, Lng = -74.802319 };
 
-            var status = mapProvider.GetPlacemarks(location, out placemarkList);
+            var status = mapProvider.GetPlacemarks(location, out var placemarkList);
 
             Assert.AreEqual(status, GeoCoderStatusCode.OK);
             Assert.AreNotEqual(placemarkList, null);

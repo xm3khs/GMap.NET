@@ -14,22 +14,16 @@ namespace GMap.NET.Avalonia
 
         protected void OnPropertyChanged(string name)
         {
-            if (PropertyChanged != null)
-            {
-                PropertyChanged(this, new PropertyChangedEventArgs(name));
-            }
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
 
         protected void OnPropertyChanged(PropertyChangedEventArgs name)
         {
-            if (PropertyChanged != null)
-            {
-                PropertyChanged(this, name);
-            }
+            PropertyChanged?.Invoke(this, name);
         }
 
         Visual _shape;
-        static readonly PropertyChangedEventArgs ShapePropertyChangedEventArgs = new PropertyChangedEventArgs(nameof(Shape));
+        static readonly PropertyChangedEventArgs ShapePropertyChangedEventArgs = new(nameof(Shape));
 
         /// <summary>
         ///     marker visual
@@ -124,7 +118,7 @@ namespace GMap.NET.Avalonia
         int _localPositionX;
 
         static readonly PropertyChangedEventArgs LocalPositionXPropertyChangedEventArgs =
-            new PropertyChangedEventArgs(nameof(LocalPositionX));
+            new(nameof(LocalPositionX));
 
         /// <summary>
         ///     local X position of marker
@@ -148,7 +142,7 @@ namespace GMap.NET.Avalonia
         int _localPositionY;
 
         static readonly PropertyChangedEventArgs LocalPositionYPropertyChangedEventArgs =
-            new PropertyChangedEventArgs(nameof(LocalPositionY));
+            new(nameof(LocalPositionY));
 
         /// <summary>
         ///     local Y position of marker
@@ -172,7 +166,7 @@ namespace GMap.NET.Avalonia
         int _zIndex;
 
         static readonly PropertyChangedEventArgs ZIndexPropertyChangedEventArgs =
-            new PropertyChangedEventArgs(nameof(ZIndex));
+            new(nameof(ZIndex));
 
         /// <summary>
         ///     the index of Z, render order
@@ -208,11 +202,7 @@ namespace GMap.NET.Avalonia
         public virtual void Clear()
         {
             var s = Shape as IDisposable;
-            if (s != null)
-            {
-                s.Dispose();
-                s = null;
-            }
+            s?.Dispose();
 
             Shape = null;
         }

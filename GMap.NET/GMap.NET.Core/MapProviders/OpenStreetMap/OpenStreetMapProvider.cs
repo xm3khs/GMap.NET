@@ -273,8 +273,7 @@ namespace GMap.NET.MapProviders
 
         public PointLatLng? GetPoint(string keywords, out GeoCoderStatusCode status)
         {
-            List<PointLatLng> pointList;
-            status = GetPoints(keywords, out pointList);
+            status = GetPoints(keywords, out var pointList);
             return pointList != null && pointList.Count > 0 ? pointList[0] : (PointLatLng?)null;
         }
 
@@ -295,15 +294,13 @@ namespace GMap.NET.MapProviders
 
         public PointLatLng? GetPoint(Placemark placemark, out GeoCoderStatusCode status)
         {
-            List<PointLatLng> pointList;
-            status = GetPoints(placemark, out pointList);
+            status = GetPoints(placemark, out var pointList);
             return pointList != null && pointList.Count > 0 ? pointList[0] : (PointLatLng?)null;
         }
 
         public GeoCoderStatusCode GetPlacemarks(PointLatLng location, out List<Placemark> placemarkList)
         {
-            GeoCoderStatusCode status;
-            placemarkList = GetPlacemarkFromReverseGeocoderUrl(MakeReverseGeocoderUrl(location), out status);
+            placemarkList = GetPlacemarkFromReverseGeocoderUrl(MakeReverseGeocoderUrl(location), out var status);
             return status;
         }
 

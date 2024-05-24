@@ -278,32 +278,19 @@ namespace GMap.NET.Avalonia
 
                 if (mapControl.ScaleMode != ScaleModes.Integer && remainder != 0 && mapControl.Bounds.Width > 0)
                 {
-                    bool scaleDown;
-
-                    switch (mapControl.ScaleMode)
+                    bool scaleDown = mapControl.ScaleMode switch
                     {
-                        case ScaleModes.ScaleDown:
-                            scaleDown = true;
-                            break;
-
-                        case ScaleModes.Dynamic:
-                            scaleDown = remainder > 0.25;
-                            break;
-
-                        default:
-                            scaleDown = false;
-                            break;
-                    }
+                        ScaleModes.ScaleDown => true,
+                        ScaleModes.Dynamic => remainder > 0.25,
+                        _ => false,
+                    };
 
                     if (scaleDown)
                         remainder--;
 
                     double scaleValue = Math.Pow(2d, remainder);
                     {
-                        if (mapControl.MapScaleTransform == null)
-                        {
-                            mapControl.MapScaleTransform = mapControl._lastScaleTransform;
-                        }
+                        mapControl.MapScaleTransform ??= mapControl._lastScaleTransform;
 
                         if (zoomMode == ZoomMode.XY || zoomMode == ZoomMode.X)
                         {
@@ -403,19 +390,19 @@ namespace GMap.NET.Avalonia
             set { SetValue(TouchEnabledProperty, value); }
         }
 
-        private readonly ScaleTransform _lastScaleTransform = new ScaleTransform();
+        private readonly ScaleTransform _lastScaleTransform = new();
 
         private ScaleModes _scaleMode = ScaleModes.Integer;
 
         #endregion DependencyProperties and related stuff
 
-        private readonly MouseDevice _mouse = new MouseDevice();
+        private readonly MouseDevice _mouse = new();
 
-        private readonly Core _core = new Core();
+        private readonly Core _core = new();
 
         private PointLatLng _selectionStart;
         private PointLatLng _selectionEnd;
-        private readonly Typeface _tileTypeface = new Typeface("Arial");
+        private readonly Typeface _tileTypeface = new("Arial");
         private bool _showTileGridLines;
 
         private FormattedText? _copyright;
@@ -588,12 +575,12 @@ namespace GMap.NET.Avalonia
         /// <summary>
         ///     current markers overlay offset
         /// </summary>
-        internal readonly TranslateTransform MapTranslateTransform = new TranslateTransform();
+        internal readonly TranslateTransform MapTranslateTransform = new();
 
-        internal readonly TranslateTransform MapOverlayTranslateTransform = new TranslateTransform();
+        internal readonly TranslateTransform MapOverlayTranslateTransform = new();
 
-        internal ScaleTransform? MapScaleTransform = new ScaleTransform();
-        internal RotateTransform MapRotateTransform = new RotateTransform();
+        internal ScaleTransform? MapScaleTransform = new();
+        internal RotateTransform MapRotateTransform = new();
 
         protected bool DesignModeInConstruct
         {
@@ -614,11 +601,14 @@ namespace GMap.NET.Avalonia
                     if (VisualChildren.Count > 0)
                     {
                         _mapCanvas = this.GetVisualDescendants().FirstOrDefault(w => w is Canvas) as Canvas;
-                        _mapCanvas.RenderTransform = MapTranslateTransform;
+                        if (_mapCanvas != null)
+                        {
+                            _mapCanvas.RenderTransform = MapTranslateTransform;
+                        }
                     }
                 }
 
-                return _mapCanvas;
+                return _mapCanvas ?? new Canvas();
             }
         }
 
@@ -694,7 +684,7 @@ namespace GMap.NET.Avalonia
 
                 #endregion -- templates --
 
-                Markers = new ObservableCollection<GMapMarker>();
+                Markers = [];
 
                 ClipToBounds = true;
 
@@ -711,8 +701,7 @@ namespace GMap.NET.Avalonia
                 //SizeChanged += GMapControl_SizeChanged;
 
                 // by default its internal property, feel free to use your own
-                if (Items == null)
-                    Items = Markers;
+                Items ??= Markers;
 
                 //TODO: find default value here
                 //_core.Zoom = (int)(double)ZoomProperty.DefaultMetadata.DefaultValue;
@@ -741,8 +730,7 @@ namespace GMap.NET.Avalonia
         /// </summary>
         public new void InvalidateVisual()
         {
-            if (_core.Refresh != null)
-                _core.Refresh.Set();
+            _core.Refresh?.Set();
         }
 
         /// <summary>
@@ -772,7 +760,7 @@ namespace GMap.NET.Avalonia
         {
             base.ItemsCollectionChanged(sender, e);
 
-            if (e.Action == NotifyCollectionChangedAction.Add)
+            if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems != null && e.NewItems.Count > 0)
             {
                 ForceUpdateOverlays(e.NewItems);
             }
@@ -873,9 +861,7 @@ namespace GMap.NET.Avalonia
         /// </summary>
         public virtual void RegenerateShape(IShapable s)
         {
-            var marker = s as GMapMarker;
-            if (marker == null)
-                throw new NotSupportedException("shape not supported");
+            var marker = s as GMapMarker ?? throw new NotSupportedException("shape not supported");
 
             if (s.Points != null && s.Points.Count > 1)
             {
@@ -988,38 +974,35 @@ namespace GMap.NET.Avalonia
 
                         if (t.NotEmpty)
                         {
-                            foreach (GMapImage img in t.Overlays)
+                            foreach (var img in t.Overlays.Cast<GMapImage>().Where(img => img != null && img.Img != null))
                             {
-                                if (img != null && img.Img != null)
+                                if (!found)
+                                    found = true;
+
+                                var imgRect = new Rect(_core.TileRect.X + 0.6,
+                                    _core.TileRect.Y + 0.6,
+                                    _core.TileRect.Width + 0.6,
+                                    _core.TileRect.Height + 0.6);
+
+                                if (!img.IsParent)
                                 {
-                                    if (!found)
-                                        found = true;
+                                    g.DrawImage(img.Img, imgRect);
+                                }
+                                else
+                                {
+                                    // TODO: move calculations to loader thread
+                                    var geometry = new RectangleGeometry(imgRect);
+                                    var parentImgRect =
+                                        new Rect(_core.TileRect.X - _core.TileRect.Width * img.Xoff + 0.6,
+                                            _core.TileRect.Y - _core.TileRect.Height * img.Yoff + 0.6,
+                                            _core.TileRect.Width * img.Ix + 0.6,
+                                            _core.TileRect.Height * img.Ix + 0.6);
 
-                                    var imgRect = new Rect(_core.TileRect.X + 0.6,
-                                        _core.TileRect.Y + 0.6,
-                                        _core.TileRect.Width + 0.6,
-                                        _core.TileRect.Height + 0.6);
-
-                                    if (!img.IsParent)
+                                    using (g.PushClip(geometry.Rect))
                                     {
-                                        g.DrawImage(img.Img, imgRect);
+                                        g.DrawImage(img.Img, parentImgRect);
                                     }
-                                    else
-                                    {
-                                        // TODO: move calculations to loader thread
-                                        var geometry = new RectangleGeometry(imgRect);
-                                        var parentImgRect =
-                                            new Rect(_core.TileRect.X - _core.TileRect.Width * img.Xoff + 0.6,
-                                                _core.TileRect.Y - _core.TileRect.Height * img.Yoff + 0.6,
-                                                _core.TileRect.Width * img.Ix + 0.6,
-                                                _core.TileRect.Height * img.Ix + 0.6);
-
-                                        using (g.PushClip(geometry.Rect))
-                                        {
-                                            g.DrawImage(img.Img, parentImgRect);
-                                        }
-                                        geometry = null;
-                                    }
+                                    geometry = null;
                                 }
                             }
                         }
@@ -1054,18 +1037,15 @@ namespace GMap.NET.Avalonia
                                     _core.TileRect.Height * ix + 0.6);
 
                                 // render tile
-                                foreach (GMapImage img in parentTile.Overlays)
+                                foreach (var img in parentTile.Overlays.Cast<GMapImage>().Where(img => img != null && img.Img != null && !img.IsParent))
                                 {
-                                    if (img != null && img.Img != null && !img.IsParent)
-                                    {
-                                        if (!found)
-                                            found = true;
+                                    if (!found)
+                                        found = true;
 
-                                        using (g.PushClip(geometry.Rect))
-                                        {
-                                            g.DrawImage(img.Img, parentImgRect);
-                                            g.DrawRectangle(SelectedAreaFill, null, geometry.Bounds);
-                                        }
+                                    using (g.PushClip(geometry.Rect))
+                                    {
+                                        g.DrawImage(img.Img, parentImgRect);
+                                        g.DrawRectangle(SelectedAreaFill, null, geometry.Bounds);
                                     }
                                 }
                             }
@@ -1346,8 +1326,8 @@ namespace GMap.NET.Avalonia
             }
         }
 
-        private readonly RotateTransform _rotationMatrix = new RotateTransform();
-        private MatrixTransform _rotationMatrixInvert = new MatrixTransform();
+        private readonly RotateTransform _rotationMatrix = new();
+        private MatrixTransform _rotationMatrixInvert = new();
 
         /// <summary>
         ///     updates rotation matrix
@@ -1577,7 +1557,7 @@ namespace GMap.NET.Avalonia
         public bool ShowCenter { get; } = true;
 
 #if DEBUG
-        private readonly Pen _virtualCenterCrossPen = new Pen(Brushes.Blue, 2);
+        private readonly Pen _virtualCenterCrossPen = new(Brushes.Blue, 2);
 #endif
 
         private HelperLineOptions _helperLineOption = HelperLineOptions.DontShow;
@@ -1964,8 +1944,7 @@ namespace GMap.NET.Avalonia
         {
             var status = GeoCoderStatusCode.UNKNOWN_ERROR;
 
-            var gp = MapProvider as GeocodingProvider;
-            if (gp == null)
+            if (MapProvider is not GeocodingProvider gp)
             {
                 gp = GMapProviders.OpenStreetMap as GeocodingProvider;
             }
@@ -1989,17 +1968,14 @@ namespace GMap.NET.Avalonia
         /// <returns></returns>
         public PointLatLng GetPositionByKeywords(string keys)
         {
-            var status = GeoCoderStatusCode.UNKNOWN_ERROR;
-
-            var gp = MapProvider as GeocodingProvider;
-            if (gp == null)
+            if (MapProvider is not GeocodingProvider gp)
             {
                 gp = GMapProviders.OpenStreetMap as GeocodingProvider;
             }
 
             if (gp != null)
             {
-                var pt = gp.GetPoint(keys, out status);
+                var pt = gp.GetPoint(keys, out var status);
                 if (status == GeoCoderStatusCode.OK && pt.HasValue)
                 {
                     return pt.Value;

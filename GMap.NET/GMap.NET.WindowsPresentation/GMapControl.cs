@@ -189,9 +189,7 @@ namespace GMap.NET.WindowsPresentation
 
         private static object OnCoerceZoom(DependencyObject o, object value)
         {
-            var map = o as GMapControl;
-
-            if (map != null)
+            if (o is GMapControl map)
             {
                 double result = (double)value;
 
@@ -216,11 +214,9 @@ namespace GMap.NET.WindowsPresentation
         /// <param name="e">The <see cref="DependencyPropertyChangedEventArgs" /> instance containing the event data.</param>
         private static void CenterPositionPropertyChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
         {
-            var gmapControl = obj as GMapControl;
-
-            if (gmapControl != null && e.NewValue is PointLatLng)
+            if (obj is GMapControl gmapControl && e.NewValue is PointLatLng lng)
             {
-                gmapControl.CenterPosition = gmapControl.Position = (PointLatLng)e.NewValue;
+                gmapControl.CenterPosition = gmapControl.Position = lng;
             }
         }
 
@@ -474,7 +470,7 @@ namespace GMap.NET.WindowsPresentation
 
         /// <summary>
         ///     text on empty tiles
-        /// </summary>
+        /// </summary>        
         public FormattedText EmptyTileText =
             new FormattedText("We are sorry, but we don't\nhave imagery at this zoom\n     level for this region.",
                 CultureInfo.CurrentUICulture,
@@ -1176,9 +1172,10 @@ namespace GMap.NET.WindowsPresentation
                                         FlowDirection.LeftToRight,
                                         _tileTypeface,
                                         14,
-                                        Brushes.Red);
-
-                                    tileText.MaxTextWidth = _core.TileRect.Width - 11;
+                                        Brushes.Red)
+                                    {
+                                        MaxTextWidth = _core.TileRect.Width - 11
+                                    };
 
                                     g.DrawText(tileText, new Point(_core.TileRect.X + 11, _core.TileRect.Y + 11));
 
@@ -1209,9 +1206,10 @@ namespace GMap.NET.WindowsPresentation
                                 FlowDirection.LeftToRight,
                                 _tileTypeface,
                                 16,
-                                Brushes.Red);
-
-                            tileText.MaxTextWidth = _core.TileRect.Width;
+                                Brushes.Red)
+                            {
+                                MaxTextWidth = _core.TileRect.Width
+                            };
 
                             g.DrawText(tileText,
                                 new Point(
@@ -1225,9 +1223,10 @@ namespace GMap.NET.WindowsPresentation
                                 FlowDirection.LeftToRight,
                                 _tileTypeface,
                                 16,
-                                Brushes.Red);
-
-                            tileText.MaxTextWidth = _core.TileRect.Width;
+                                Brushes.Red)
+                            {
+                                MaxTextWidth = _core.TileRect.Width
+                            };
 
                             g.DrawText(tileText,
                                 new Point(
@@ -2174,7 +2173,7 @@ namespace GMap.NET.WindowsPresentation
 
             var touchPoints = e.Manipulators.ToArray();
 
-            if (!(e.Source is FrameworkElement element))
+            if (!(e.Source is FrameworkElement))
             {
                 return;
             }
@@ -2321,7 +2320,7 @@ namespace GMap.NET.WindowsPresentation
         }
 
         int _change;
-        private Dictionary<int, Point> movingPoints = new Dictionary<int, Point>();
+        private readonly Dictionary<int, Point> movingPoints = new Dictionary<int, Point>();
 
         /// <summary>
         /// Calculates a straight line distance between 2 points (Pythagoras Theorem)
@@ -2464,8 +2463,6 @@ namespace GMap.NET.WindowsPresentation
 
                 var point1 = new Point();
                 var point2 = new Point();
-                double nowDistance = 0;
-                double preDistance = 0;
                 int count = 0;
 
                 foreach (var item in movingPoints)
@@ -2477,11 +2474,11 @@ namespace GMap.NET.WindowsPresentation
                     count++;
                 }
 
-                preDistance = CalculateDistance(point1.X, point1.Y, point2.X, point2.Y);
+                double preDistance = CalculateDistance(point1.X, point1.Y, point2.X, point2.Y);
                 var touchPoint = e.GetTouchPoint(this);
                 var nPoint = new Point { X = touchPoint.Position.X, Y = touchPoint.Position.Y };
 
-                nowDistance = movingPoints[e.TouchDevice.Id] == point1 
+                double nowDistance = movingPoints[e.TouchDevice.Id] == point1
                     ? CalculateDistance(nPoint.X, nPoint.Y, point2.X, point2.Y)
                     : CalculateDistance(nPoint.X, nPoint.Y, point1.X, point1.Y);
 

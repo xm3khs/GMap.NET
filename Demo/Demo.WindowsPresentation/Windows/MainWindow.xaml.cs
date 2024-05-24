@@ -26,10 +26,10 @@ namespace Demo.WindowsPresentation
         PointLatLng _end;
 
         // marker
-        GMapMarker currentMarker;
+        readonly GMapMarker currentMarker;
 
         // zones list
-        List<GMapMarker> Circles = new List<GMapMarker>();
+        readonly List<GMapMarker> Circles = new List<GMapMarker>();
 
         public MainWindow()
         {
@@ -131,9 +131,7 @@ namespace Demo.WindowsPresentation
             //if(false)
             {
                 // add my city location for demo
-                GeoCoderStatusCode status;
-
-                var city = GMapProviders.GoogleMap.GetPoint("Lithuania, Vilnius", out status);
+                var city = GMapProviders.GoogleMap.GetPoint("Lithuania, Vilnius", out var status);
                 if (city != null && status == GeoCoderStatusCode.OK)
                 {
                     var it = new GMapMarker(city.Value);
@@ -239,7 +237,7 @@ namespace Demo.WindowsPresentation
             return min + rng.NextDouble() * (max - min);
         }
 
-        Random r = new Random();
+        readonly Random r = new Random();
 
         int _tt;
 
@@ -288,13 +286,13 @@ namespace Demo.WindowsPresentation
             img.RenderTransform = new ScaleTransform(1.2, 1.2, 12.5, 12.5);
         }
 
-        DispatcherTimer timer = new DispatcherTimer();
+        readonly DispatcherTimer timer = new DispatcherTimer();
 
         #endregion
 
         #region -- transport demo --
 
-        BackgroundWorker transport = new BackgroundWorker();
+        readonly BackgroundWorker transport = new BackgroundWorker();
 
         readonly List<VehicleData> _trolleybus = new List<VehicleData>();
         readonly Dictionary<int, GMapMarker> _trolleybusMarkers = new Dictionary<int, GMapMarker>();
@@ -312,12 +310,12 @@ namespace Demo.WindowsPresentation
                 {
                     foreach (var d in _trolleybus)
                     {
-                        GMapMarker marker;
-
-                        if (!_trolleybusMarkers.TryGetValue(d.Id, out marker))
+                        if (!_trolleybusMarkers.TryGetValue(d.Id, out var marker))
                         {
-                            marker = new GMapMarker(new PointLatLng(d.Lat, d.Lng));
-                            marker.Tag = d.Id;
+                            marker = new GMapMarker(new PointLatLng(d.Lat, d.Lng))
+                            {
+                                Tag = d.Id
+                            };
                             marker.Shape = new CircleVisual(marker, Brushes.Red);
 
                             _trolleybusMarkers[d.Id] = marker;
@@ -345,12 +343,12 @@ namespace Demo.WindowsPresentation
                 {
                     foreach (var d in _bus)
                     {
-                        GMapMarker marker;
-
-                        if (!_busMarkers.TryGetValue(d.Id, out marker))
+                        if (!_busMarkers.TryGetValue(d.Id, out var marker))
                         {
-                            marker = new GMapMarker(new PointLatLng(d.Lat, d.Lng));
-                            marker.Tag = d.Id;
+                            marker = new GMapMarker(new PointLatLng(d.Lat, d.Lng))
+                            {
+                                Tag = d.Id
+                            };
 
                             var v = new CircleVisual(marker, Brushes.Blue);
                             {
@@ -448,14 +446,18 @@ namespace Demo.WindowsPresentation
                 // add zone circle
                 //if(false)
                 {
-                    var it = new GMapMarker(center);
-                    it.ZIndex = -1;
+                    var it = new GMapMarker(center)
+                    {
+                        ZIndex = -1
+                    };
 
-                    var c = new Circle();
-                    c.Center = center;
-                    c.Bound = maxDistObject.Obj.Point;
-                    c.Tag = it;
-                    c.IsHitTestVisible = false;
+                    var c = new Circle
+                    {
+                        Center = center,
+                        Bound = maxDistObject.Obj.Point,
+                        Tag = it,
+                        IsHitTestVisible = false
+                    };
 
                     UpdateCircle(c);
                     Circles.Add(it);
@@ -671,9 +673,11 @@ namespace Demo.WindowsPresentation
 
                     if (res == MessageBoxResult.Yes)
                     {
-                        var obj = new TilePrefetcher();
-                        obj.Owner = this;
-                        obj.ShowCompleteMessage = true;
+                        var obj = new TilePrefetcher
+                        {
+                            Owner = this,
+                            ShowCompleteMessage = true
+                        };
                         obj.Start(area, i, MainMap.MapProvider, 100);
                     }
                     else if (res == MessageBoxResult.No)
@@ -756,12 +760,14 @@ namespace Demo.WindowsPresentation
                 var en = new PngBitmapEncoder();
                 en.Frames.Add(BitmapFrame.Create(img as BitmapSource));
 
-                var dlg = new Microsoft.Win32.SaveFileDialog();
-                dlg.FileName = "GMap.NET Image"; // Default file name
-                dlg.DefaultExt = ".png"; // Default file extension
-                dlg.Filter = "Image (.png)|*.png"; // Filter files by extension
-                dlg.AddExtension = true;
-                dlg.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
+                var dlg = new Microsoft.Win32.SaveFileDialog
+                {
+                    FileName = "GMap.NET Image", // Default file name
+                    DefaultExt = ".png", // Default file extension
+                    Filter = "Image (.png)|*.png", // Filter files by extension
+                    AddExtension = true,
+                    InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures)
+                };
 
                 // Show save file dialog box
                 bool? result = dlg.ShowDialog();
@@ -815,8 +821,7 @@ namespace Demo.WindowsPresentation
                 Placemark? p = null;
                 if (CheckBoxPlace.IsChecked.Value)
                 {
-                    GeoCoderStatusCode status;
-                    var plret = GMapProviders.GoogleMap.GetPlacemark(currentMarker.Position, out status);
+                    var plret = GMapProviders.GoogleMap.GetPlacemark(currentMarker.Position, out var status);
                     if (status == GeoCoderStatusCode.OK && plret != null)
                     {
                         p = plret;
@@ -854,8 +859,7 @@ namespace Demo.WindowsPresentation
         // adds route
         private void button12_Click(object sender, RoutedEventArgs e)
         {
-            var rp = MainMap.MapProvider as RoutingProvider;
-            if (rp == null)
+            if (!(MainMap.MapProvider is RoutingProvider rp))
             {
                 rp = GMapProviders.OpenStreetMap; // use OpenStreetMap if provider does not implement routing
             }
