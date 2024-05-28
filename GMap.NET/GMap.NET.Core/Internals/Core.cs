@@ -129,10 +129,7 @@ namespace GMap.NET.Internals
                         GoToCurrentPositionOnZoom();
                         UpdateBounds();
 
-                        if (OnMapZoomChanged != null)
-                        {
-                            OnMapZoomChanged();
-                        }
+                        OnMapZoomChanged?.Invoke();
                     }
                 }
             }
@@ -170,8 +167,7 @@ namespace GMap.NET.Internals
                         GoToCurrentPosition();
                     }
 
-                    if (OnCurrentPositionChanged != null)
-                        OnCurrentPositionChanged(_position);
+                    OnCurrentPositionChanged?.Invoke(_position);
                 }
             }
         }
@@ -240,10 +236,7 @@ namespace GMap.NET.Internals
                             ZoomToArea = false;
                         }
 
-                        if (OnMapTypeChanged != null)
-                        {
-                            OnMapTypeChanged(value);
-                        }
+                        OnMapTypeChanged?.Invoke(value);
                     }
                 }
             }
@@ -377,9 +370,11 @@ namespace GMap.NET.Internals
 
                 GoToCurrentPosition();
 
-                _invalidator = new BackgroundWorker();
-                _invalidator.WorkerSupportsCancellation = true;
-                _invalidator.WorkerReportsProgress = true;
+                _invalidator = new BackgroundWorker
+                {
+                    WorkerSupportsCancellation = true,
+                    WorkerReportsProgress = true
+                };
                 _invalidator.DoWork += InvalidatorWatch;
                 _invalidator.RunWorkerAsync();
 
@@ -725,10 +720,7 @@ namespace GMap.NET.Internals
                 IsDragging = false;
             }
 
-            if (OnMapDrag != null)
-            {
-                OnMapDrag();
-            }
+            OnMapDrag?.Invoke();
         }
 
         /// <summary>
@@ -753,10 +745,7 @@ namespace GMap.NET.Internals
                 LastLocationInBounds = Position;
                 Position = FromLocalToLatLng(Width / 2, Height / 2);
 
-                if (OnMapDrag != null)
-                {
-                    OnMapDrag();
-                }
+                OnMapDrag?.Invoke();
             }
         }
 
@@ -1075,10 +1064,7 @@ namespace GMap.NET.Internals
             }
             finally
             {
-                if (task.Core.Refresh != null)
-                {
-                    task.Core.Refresh.Set();
-                }
+                task.Core.Refresh?.Set();
             }
         }
 
@@ -1115,10 +1101,7 @@ namespace GMap.NET.Internals
             Debug.WriteLine(ctid + " - OnTileLoadComplete: " + lastTileLoadTimeMs + "ms, MemoryCacheSize: " +
                             GMaps.Instance.MemoryCache.Size + "MB");
 
-            if (OnTileLoadComplete != null)
-            {
-                OnTileLoadComplete(lastTileLoadTimeMs);
-            }
+            OnTileLoadComplete?.Invoke(lastTileLoadTimeMs);
         }
 
         public AutoResetEvent Refresh = new AutoResetEvent(false);
@@ -1275,10 +1258,7 @@ namespace GMap.NET.Internals
 #endif
             UpdatingBounds = false;
 
-            if (OnTileLoadStart != null)
-            {
-                OnTileLoadStart();
-            }
+            OnTileLoadStart?.Invoke();
         }
 
         /// <summary>

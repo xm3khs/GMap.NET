@@ -422,15 +422,12 @@ namespace GMap.NET.MapProviders
 
         public MapRoute GetRoute(List<PointLatLng> list, bool avoidHighways, bool walkingMode, int zoom)
         {
-            string tooltip;
-            int numLevels;
-            int zoomFactor;
             MapRoute ret = null;
             var points = GetRoutePoints(MakeRouteUrl(list, LanguageStr, avoidHighways, walkingMode),
                 zoom,
-                out tooltip,
-                out numLevels,
-                out zoomFactor);
+                out string tooltip,
+                out int numLevels,
+                out int zoomFactor);
             if (points != null)
             {
                 ret = new MapRoute(points, tooltip);
@@ -441,15 +438,12 @@ namespace GMap.NET.MapProviders
 
         public MapRoute GetRoute(List<string> list, bool avoidHighways, bool walkingMode, int zoom)
         {
-            string tooltip;
-            int numLevels;
-            int zoomFactor;
             MapRoute ret = null;
             var points = GetRoutePoints(MakeRouteUrl(list, LanguageStr, avoidHighways, walkingMode),
                 zoom,
-                out tooltip,
-                out numLevels,
-                out zoomFactor);
+                out string tooltip,
+                out int numLevels,
+                out int zoomFactor);
             if (points != null)
             {
                 ret = new MapRoute(points, tooltip);
@@ -460,15 +454,12 @@ namespace GMap.NET.MapProviders
 
         public MapRoute GetRoute(PointLatLng start, PointLatLng end, bool avoidHighways, bool walkingMode, int zoom)
         {
-            string tooltip;
-            int numLevels;
-            int zoomFactor;
             MapRoute ret = null;
             var points = GetRoutePoints(MakeRouteUrl(start, end, LanguageStr, avoidHighways, walkingMode),
                 zoom,
-                out tooltip,
-                out numLevels,
-                out zoomFactor);
+                out string tooltip,
+                out int numLevels,
+                out int zoomFactor);
             if (points != null)
             {
                 ret = new MapRoute(points, tooltip);
@@ -479,15 +470,12 @@ namespace GMap.NET.MapProviders
 
         public MapRoute GetRoute(string start, string end, bool avoidHighways, bool walkingMode, int zoom)
         {
-            string tooltip;
-            int numLevels;
-            int zoomFactor;
             MapRoute ret = null;
             var points = GetRoutePoints(MakeRouteUrl(start, end, LanguageStr, avoidHighways, walkingMode),
                 zoom,
-                out tooltip,
-                out numLevels,
-                out zoomFactor);
+                out string tooltip,
+                out int numLevels,
+                out int zoomFactor);
             if (points != null)
             {
                 ret = new MapRoute(points, tooltip);

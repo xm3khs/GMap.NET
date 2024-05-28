@@ -600,7 +600,7 @@ namespace GMap.NET.Avalonia
                 {
                     if (VisualChildren.Count > 0)
                     {
-                        _mapCanvas = this.GetVisualDescendants().FirstOrDefault(w => w is Canvas) as Canvas;
+                        _mapCanvas = (Canvas)this.GetVisualDescendants().FirstOrDefault(w => w is Canvas);
                         if (_mapCanvas != null)
                         {
                             _mapCanvas.RenderTransform = MapTranslateTransform;
@@ -662,7 +662,7 @@ namespace GMap.NET.Avalonia
 
                 _itemsPanelTemplateInstance ??= new ItemsPanelTemplate
                 {
-                    Content = _mapCanvas = new Canvas()
+                    Content = MapCanvas
                 };
 
                 ItemsPanel = _itemsPanelTemplateInstance;
@@ -1842,7 +1842,7 @@ namespace GMap.NET.Avalonia
                 {
                     IsDragging = true;
                     Debug.WriteLine("IsDragging = " + IsDragging);
-                    _cursorBefore = Cursor;
+                    _cursorBefore = Cursor ?? Cursor.Default;
                     Cursor = new Cursor(StandardCursorType.SizeAll);
                     _mouse.Capture(this);
                 }

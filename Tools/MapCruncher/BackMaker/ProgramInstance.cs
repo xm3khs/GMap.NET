@@ -92,10 +92,7 @@ namespace BackMaker
             finally
             {
                 DebugThreadInterrupter.theInstance.Quit();
-                if (mainAppForm != null)
-                {
-                    mainAppForm.UndoConstruction();
-                }
+                mainAppForm?.UndoConstruction();
             }
 
             return _applicationResultCode;

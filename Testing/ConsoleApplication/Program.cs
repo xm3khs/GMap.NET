@@ -148,6 +148,7 @@ namespace ConsoleApplication
                 Debug.WriteLine("import: " + ex);
             }
 
+            /*
             if (false)
             {
                 string[] dirs = Directory.GetDirectories(@"D:\Temp\tmap\TOP50LKS");
@@ -178,9 +179,11 @@ namespace ConsoleApplication
                     //break;
                 }
             }
+            */
 
             return;
 
+            /*
             AppDomain.CurrentDomain.AssemblyLoad += CurrentDomain_AssemblyLoad;
 
             GMapProvider.WebProxy = new WebProxy("127.0.0.1", 1080);
@@ -293,6 +296,7 @@ namespace ConsoleApplication
 
                 Debug.WriteLine("FromPixelToTileXY: " + tl);
             }
+            */
 
             /*
                0/1 = 2
@@ -309,6 +313,7 @@ namespace ConsoleApplication
                11/12 = 2 
             */
 
+            /*
             if (false)
             {
                 var p = LKS94Projection.Instance;
@@ -333,8 +338,10 @@ namespace ConsoleApplication
                     Debug.WriteLine(i + "/" + (i + 1) + " = " + s);
                 }
             }
+            */
 
 #if DEBUG
+            /*
             if (false)
             {
                 //GMaps.Instance.PrimaryCache.DeleteOlderThan(DateTime.Now, GMapProviders.GoogleMap.DbId);
@@ -407,8 +414,9 @@ namespace ConsoleApplication
                     //}
                 }
             }
+            */
 #endif
-
+            /*
             if (false)
             {
                 //-34,8859309407532, Lng=-58,359375
@@ -453,6 +461,7 @@ namespace ConsoleApplication
             GMaps.Instance.CancelTileCaching();
 
             //Console.ReadLine();
+            */
         }
     }
 }

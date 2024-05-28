@@ -12,23 +12,23 @@ namespace MSR.CVE.BackMaker
         public static BuildConfig theConfig;
         public string buildConfiguration = "Broken";
 
-        private CfgString _editionName = new CfgString("editionName", "Broken");
-        private CfgBool _debugModeEnabled = new CfgBool("debugModeEnabled", false);
-        private CfgBool _forceAffineControlVisible = new CfgBool("forceAffineControlVisible", true);
-        private CfgBool _enableS3 = new CfgBool("enableS3", false);
-        private CfgInt _autoMaxZoomOffset = new CfgInt("autoMaxZoomOffset", 0);
-        private CfgBool _usingManifests = new CfgBool("usingManifests", false);
-        private CfgBool _debugRefs = new CfgBool("debugRefs", false);
-        private CfgBool _logInteractiveRenders = new CfgBool("logInteractiveRenders", false);
-        private CfgString _allFilesOption = new CfgString("allFilesOption", "");
-        private CfgBool _suppressFoxitMessages = new CfgBool("suppressFoxitMessages", false);
-        private CfgBool _enableSnapFeatures = new CfgBool("enableSnapFeatures", false);
-        private CfgString _veFormatUpdateURL = new CfgString("veFormatUpdateURL", null);
-        private CfgBool _injectTemporaryTileFailures = new CfgBool("injectTemporaryTileFailures", false);
-        private CfgInt _debugLevel = new CfgInt("debugLevel", 0);
-        private CfgString _mapControl = new CfgString("mapControl", null);
-        private CfgString _hostHome = new CfgString("hostHome", null);
-        private CfgString _mapCruncherHomeSite = new CfgString("mapCruncherHomeSite", null);
+        private readonly CfgString _editionName = new CfgString("editionName", "Broken");
+        private readonly CfgBool _debugModeEnabled = new CfgBool("debugModeEnabled", false);
+        private readonly CfgBool _forceAffineControlVisible = new CfgBool("forceAffineControlVisible", true);
+        private readonly CfgBool _enableS3 = new CfgBool("enableS3", false);
+        private readonly CfgInt _autoMaxZoomOffset = new CfgInt("autoMaxZoomOffset", 0);
+        private readonly CfgBool _usingManifests = new CfgBool("usingManifests", false);
+        private readonly CfgBool _debugRefs = new CfgBool("debugRefs", false);
+        private readonly CfgBool _logInteractiveRenders = new CfgBool("logInteractiveRenders", false);
+        private readonly CfgString _allFilesOption = new CfgString("allFilesOption", "");
+        private readonly CfgBool _suppressFoxitMessages = new CfgBool("suppressFoxitMessages", false);
+        private readonly CfgBool _enableSnapFeatures = new CfgBool("enableSnapFeatures", false);
+        private readonly CfgString _veFormatUpdateURL = new CfgString("veFormatUpdateURL", null);
+        private readonly CfgBool _injectTemporaryTileFailures = new CfgBool("injectTemporaryTileFailures", false);
+        private readonly CfgInt _debugLevel = new CfgInt("debugLevel", 0);
+        private readonly CfgString _mapControl = new CfgString("mapControl", null);
+        private readonly CfgString _hostHome = new CfgString("hostHome", null);
+        private readonly CfgString _mapCruncherHomeSite = new CfgString("mapCruncherHomeSite", null);
         private Dictionary<string, ParseableCfg> _configurationDict;
 
         public string editionName
@@ -379,8 +379,10 @@ namespace MSR.CVE.BackMaker
 
         private static BuildConfig MSRConfig(string name)
         {
-            var buildConfig = new BuildConfig();
-            buildConfig.buildConfiguration = name;
+            var buildConfig = new BuildConfig
+            {
+                buildConfiguration = name
+            };
             buildConfig.editionName = buildConfig.buildConfiguration + " Edition Resurrection ;}";
             buildConfig.debugModeEnabled = true;
             buildConfig.forceAffineControlVisible = true;

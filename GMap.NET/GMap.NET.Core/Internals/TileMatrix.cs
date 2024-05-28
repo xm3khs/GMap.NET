@@ -45,7 +45,7 @@ namespace GMap.NET.Internals
             _lock.AcquireWriterLock();
             try
             {
-                if (zoom < _levels.Count)
+                if (_levels != null && zoom < _levels.Count)
                 {
                     var l = _levels[zoom];
 
@@ -70,7 +70,7 @@ namespace GMap.NET.Internals
             _lock.AcquireWriterLock();
             try
             {
-                if (zoom < _levels.Count)
+                if (_levels != null && zoom < _levels.Count)
                 {
                     var l = _levels[zoom];
 
@@ -104,7 +104,7 @@ namespace GMap.NET.Internals
             _lock.AcquireWriterLock();
             try
             {
-                if (zoom - 1 < _levels.Count)
+                if (_levels != null && zoom - 1 < _levels.Count)
                 {
                     for (int i = zoom - 1; i >= 0; i--)
                     {
@@ -130,7 +130,7 @@ namespace GMap.NET.Internals
             _lock.AcquireWriterLock();
             try
             {
-                if (zoom + 1 < _levels.Count)
+                if (_levels != null && zoom + 1 < _levels.Count)
                 {
                     for (int i = zoom + 1; i < _levels.Count; i++)
                     {
@@ -165,7 +165,7 @@ namespace GMap.NET.Internals
         {
             var ret = Tile.Empty;
 
-            //if(zoom < Levels.Count)
+            if (_levels != null && zoom < _levels.Count)
             {
                 _levels[zoom].TryGetValue(p, out ret);
             }
@@ -195,7 +195,7 @@ namespace GMap.NET.Internals
             _lock.AcquireWriterLock();
             try
             {
-                if (t.Zoom < _levels.Count)
+                if (_levels != null && t.Zoom < _levels.Count)
                 {
                     _levels[t.Zoom][t.Pos] = t;
                 }

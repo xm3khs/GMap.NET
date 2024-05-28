@@ -13,7 +13,7 @@ namespace Demo.Geocoding
 {
     public partial class FormMainMap : Form
     {
-        GMapOverlay objects = new GMapOverlay("objects");
+        readonly GMapOverlay objects = new GMapOverlay("objects");
 
         int Exito;
         int Falla;

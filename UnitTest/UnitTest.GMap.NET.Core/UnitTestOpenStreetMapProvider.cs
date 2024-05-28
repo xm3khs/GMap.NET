@@ -39,7 +39,7 @@ namespace UnitTest.GMap.NET.Core
             Assert.AreEqual(status, GeoCoderStatusCode.OK);
             Assert.AreNotEqual(point, null);            
 
-            status = mapProvider.GetPoints(point.Value, out var pointList);
+            status = mapProvider.GetPoints(point ?? new Placemark(), out var pointList);
 
             Assert.AreEqual(status, GeoCoderStatusCode.OK);
             Assert.AreNotEqual(pointList, null);
