@@ -15,8 +15,8 @@ namespace Demo.StreetView
     /// </summary>
     public partial class Window1 : Window
     {
-        BackgroundWorker loader = new BackgroundWorker();
-        StackPanel buff = new StackPanel();
+        readonly BackgroundWorker loader = new BackgroundWorker();
+        readonly StackPanel buff = new StackPanel();
 
         public Window1()
         {
@@ -39,7 +39,7 @@ namespace Demo.StreetView
         {
             buff.UpdateLayout();
 
-            Canvas canvas = new Canvas();
+            var canvas = new Canvas();
             canvas.Children.Add(buff);
             canvas.Width = 512 * 13;
             canvas.Height = 512 * 7;
@@ -51,12 +51,14 @@ namespace Demo.StreetView
             int Height = (int)canvas.ActualHeight;
             int Width = (int)canvas.ActualWidth;
 
-            RenderTargetBitmap _RenderTargetBitmap =
+            var _RenderTargetBitmap =
                 new RenderTargetBitmap(Width, Height, 96, 96, PixelFormats.Pbgra32);
             _RenderTargetBitmap.Render(buff);
 
-            Image img = new Image();
-            img.Source = _RenderTargetBitmap;
+            //var img = new Image
+            //{
+            //    Source = _RenderTargetBitmap
+            //};
 
             Viewer.PanoramaImage = _RenderTargetBitmap;
 
@@ -70,7 +72,7 @@ namespace Demo.StreetView
         {
             if (e.LeftButton == MouseButtonState.Released)
                 return;
-            Vector Offset = Point.Subtract(e.GetPosition(Viewer), DownPoint) * 0.25;
+            var Offset = Point.Subtract(e.GetPosition(Viewer), DownPoint) * 0.25;
 
             Viewer.RotationY = RotationVector.Y + Offset.X;
             Viewer.RotationX = RotationVector.X - Offset.Y;
@@ -93,20 +95,23 @@ namespace Demo.StreetView
         {
             if (e.ProgressPercentage == 100)
             {
-                Pass p = e.UserState as Pass;
+                var p = e.UserState as Pass;
 
                 Title = "Demo.StreetView, please wait on first time loading: " + p.X + "|" + p.Y + " of 13";
-                Image i = new Image();
-
-                i.Source = p.src;
+                var i = new Image
+                {
+                    Source = p.src
+                };
                 (buff.Children[buff.Children.Count - 1] as StackPanel).Children.Add(i);
             }
             else if (e.ProgressPercentage == 0)
             {
                 Title = "Demo.StreetView, please wait on first time loading: zooming...";
 
-                StackPanel ph = new StackPanel();
-                ph.Orientation = Orientation.Horizontal;
+                var ph = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal
+                };
                 buff.Children.Add(ph);
             }
         }
@@ -129,9 +134,11 @@ namespace Demo.StreetView
 
                 for (int x = 0; x < 13; x++)
                 {
-                    Pass p = new Pass();
-                    p.Y = y;
-                    p.X = x;
+                    var p = new Pass
+                    {
+                        Y = y,
+                        X = x
+                    };
 
                     string fl = "Tiles\\" + zoom + "\\" + panoId + "\\img_" + x + "_" + y + ".jpg";
                     string dr = Path.GetDirectoryName(fl);
@@ -142,7 +149,7 @@ namespace Demo.StreetView
 
                     if (!File.Exists(fl))
                     {
-                        ImageSource src =
+                        var src =
                             Get(string.Format(
                                 "http://cbk{0}.{5}/cbk?output=tile&panoid={1}&zoom={2}&x={3}&y={4}&cb_client=maps_sv",
                                 (x + 2 * y) % 3,
@@ -175,7 +182,7 @@ namespace Demo.StreetView
         {
             using (Stream s = File.OpenWrite(file))
             {
-                JpegBitmapEncoder e = new JpegBitmapEncoder();
+                var e = new JpegBitmapEncoder();
                 e.Frames.Add(BitmapFrame.Create(src as BitmapSource));
                 e.Save(s);
             }
@@ -190,7 +197,7 @@ namespace Demo.StreetView
         {
             const int readSize = 256;
             byte[] buffer = new byte[readSize];
-            MemoryStream ms = new MemoryStream();
+            var ms = new MemoryStream();
 
             using (inputStream)
             {
@@ -202,7 +209,6 @@ namespace Demo.StreetView
                 }
             }
 
-            buffer = null;
             ms.Seek(0, SeekOrigin.Begin);
             return ms;
         }
@@ -216,7 +222,7 @@ namespace Demo.StreetView
                     // try png decoder
                     try
                     {
-                        JpegBitmapDecoder bitmapDecoder = new JpegBitmapDecoder(stream,
+                        var bitmapDecoder = new JpegBitmapDecoder(stream,
                             BitmapCreateOptions.PreservePixelFormat,
                             BitmapCacheOption.OnLoad);
                         ImageSource m = bitmapDecoder.Frames[0];
@@ -238,7 +244,7 @@ namespace Demo.StreetView
                         {
                             stream.Seek(0, SeekOrigin.Begin);
 
-                            PngBitmapDecoder bitmapDecoder = new PngBitmapDecoder(stream,
+                            var bitmapDecoder = new PngBitmapDecoder(stream,
                                 BitmapCreateOptions.PreservePixelFormat,
                                 BitmapCacheOption.OnLoad);
                             ImageSource m = bitmapDecoder.Frames[0];
@@ -264,7 +270,7 @@ namespace Demo.StreetView
             ImageSource ret = null;
             try
             {
-                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
+                var request = (HttpWebRequest)WebRequest.Create(url);
                 request.ServicePoint.ConnectionLimit = 50;
                 request.Proxy = WebRequest.DefaultWebProxy;
 
@@ -275,9 +281,9 @@ namespace Demo.StreetView
                     GMap.NET.MapProviders.GoogleMapProvider.Instance.Server);
                 request.KeepAlive = true;
 
-                using (HttpWebResponse response = request.GetResponse() as HttpWebResponse)
+                using (var response = request.GetResponse() as HttpWebResponse)
                 {
-                    using (Stream responseStream = CopyStream(response.GetResponseStream()))
+                    using (var responseStream = CopyStream(response.GetResponseStream()))
                     {
                         ret = FromStream(responseStream);
                     }

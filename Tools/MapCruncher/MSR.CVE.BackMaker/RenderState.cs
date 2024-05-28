@@ -97,12 +97,12 @@ namespace MSR.CVE.BackMaker
             public MapRectangle renderBoundsBoundingBox;
         }
 
-        private const int sortPseudoLayer = 1;
+        private const int SortPseudoLayer = 1;
         private const int TileCountReportInterval = 10000;
         private const int UnreasonablyManyTiles = 1000000;
         private const int ErrorMessageLimit = 100;
         private const int RangeQuerySizeLimit = 100;
-        private const string thumbnailPathPrefix = "thumbnails";
+        private const string ThumbnailPathPrefix = "thumbnails";
         private readonly Mashup _mashupDocument_UseScratchCopy;
         private Mashup mashupScratchCopy;
         private readonly RenderUIIfc _renderUI;

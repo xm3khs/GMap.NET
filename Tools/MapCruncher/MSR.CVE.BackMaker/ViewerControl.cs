@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
@@ -7,6 +7,7 @@ using System.Threading;
 using System.Windows.Forms;
 using MSR.CVE.BackMaker.ImagePipeline;
 using MSR.CVE.BackMaker.MCDebug;
+using System.Linq;
 
 namespace MSR.CVE.BackMaker
 {
@@ -38,7 +39,7 @@ namespace MSR.CVE.BackMaker
 
         public class DragImageAction : MouseAction
         {
-            private ViewerControl sourceViewer;
+            private readonly ViewerControl sourceViewer;
 
             public DragImageAction(ViewerControl sourceViewer)
             {
@@ -72,8 +73,8 @@ namespace MSR.CVE.BackMaker
 
         private class ImagePainter : TilePaintClosure, IDisposable
         {
-            private ImageRef imageRef;
-            private Region clipRegion;
+            private readonly ImageRef imageRef;
+            private readonly Region clipRegion;
 
             public ImagePainter(ImageRef imageRef, Region clipRegion)
             {
@@ -122,9 +123,9 @@ namespace MSR.CVE.BackMaker
 
         private class MessagePainter : TilePaintClosure, IDisposable
         {
-            private int offsetPixels;
-            private string message;
-            private bool fillBG;
+            private readonly int offsetPixels;
+            private readonly string message;
+            private readonly bool fillBG;
 
             public MessagePainter(int offsetPixels, string message, bool fillBG)
             {
@@ -143,12 +144,12 @@ namespace MSR.CVE.BackMaker
 
                 for (float num = 0.2f; num < 1f; num += 0.6f)
                 {
-                    Font font = new Font("Arial", 8f);
-                    PointF pointF =
+                    var font = new Font("Arial", 8f);
+                    var pointF =
                         new PointF(paintLocation.Left + paintLocation.Width * 0.02f +
                                    offsetPixels,
                             paintLocation.Top + paintLocation.Height * num);
-                    SizeF size = g.MeasureString(message, font);
+                    var size = g.MeasureString(message, font);
                     g.FillEllipse(new SolidBrush(Color.Wheat), new RectangleF(pointF, size));
                     g.DrawString(message, font, new SolidBrush(Color.Crimson), pointF);
                 }
@@ -161,7 +162,7 @@ namespace MSR.CVE.BackMaker
 
         private class TileNamePainter : TilePaintClosure, IDisposable
         {
-            private string tileName;
+            private readonly string tileName;
 
             public TileNamePainter(string tileName)
             {
@@ -170,8 +171,8 @@ namespace MSR.CVE.BackMaker
 
             public void PaintTile(Graphics g, Rectangle paintLocation)
             {
-                Font font = new Font("Helvetica", 10f);
-                SizeF sizeF = g.MeasureString(tileName, font);
+                var font = new Font("Helvetica", 10f);
+                var sizeF = g.MeasureString(tileName, font);
                 PointF point = new Point(paintLocation.X + 20, paintLocation.Y + 8);
                 float num = 5f;
                 g.CompositingMode = CompositingMode.SourceOver;
@@ -213,8 +214,8 @@ namespace MSR.CVE.BackMaker
 
         private class AsyncNotifier
         {
-            private ViewerControl viewerControl;
-            private int generation;
+            private readonly ViewerControl viewerControl;
+            private readonly int generation;
 
             public AsyncNotifier(ViewerControl viewerControl)
             {
@@ -231,8 +232,8 @@ namespace MSR.CVE.BackMaker
             }
         }
 
-        private const int ecRadius = 6;
-        private const int invertErrorRadius = 20;
+        private const int EcRadius = 6;
+        private const int InvertErrorRadius = 20;
         private DisplayableSourceCache baseLayer;
         private List<DisplayableSourceCache> alphaLayers = new List<DisplayableSourceCache>();
         private List<PositionAssociationView> pinList;
@@ -260,7 +261,7 @@ namespace MSR.CVE.BackMaker
         private int tilesAvailable;
         private int asyncRequestGeneration;
         private SnapViewStoreIfc snapViewStore;
-        private IContainer components;
+        private readonly IContainer components;
         private LLZBox llzBox;
         private Button zoomOutButton;
         private Button zoomInButton;
@@ -304,7 +305,7 @@ namespace MSR.CVE.BackMaker
 
         public void latEdited(double newLat)
         {
-            LatLon latlon = new LatLon(newLat, center().llz.lon);
+            var latlon = new LatLon(newLat, center().llz.lon);
             latlon.CheckValid(GetCoordinateSystem());
             center().setPosition(new LatLonZoom(latlon, center().llz.zoom));
             center().ForceInteractiveUpdate();
@@ -312,7 +313,7 @@ namespace MSR.CVE.BackMaker
 
         public void lonEdited(double newLon)
         {
-            LatLon latlon = new LatLon(center().llz.lat, newLon);
+            var latlon = new LatLon(center().llz.lat, newLon);
             latlon.CheckValid(GetCoordinateSystem());
             center().setPosition(new LatLonZoom(latlon, center().llz.zoom));
             center().ForceInteractiveUpdate();
@@ -400,18 +401,15 @@ namespace MSR.CVE.BackMaker
 
         public void RecordSnapView()
         {
-            if (snapViewStore != null)
-            {
-                snapViewStore.Record(center().llz);
-            }
+            snapViewStore?.Record(center().llz);
         }
 
         public void RestoreSnapView()
         {
             if (snapViewStore != null)
             {
-                LatLonZoom latLonZoom = snapViewStore.Restore();
-                if (latLonZoom != default(LatLonZoom))
+                var latLonZoom = snapViewStore.Restore();
+                if (latLonZoom != default)
                 {
                     center().setPosition(latLonZoom);
                     center().ForceInteractiveUpdate();
@@ -421,10 +419,7 @@ namespace MSR.CVE.BackMaker
 
         public void RecordSnapZoom()
         {
-            if (snapViewStore != null)
-            {
-                snapViewStore.RecordZoom(center().llz.zoom);
-            }
+            snapViewStore?.RecordZoom(center().llz.zoom);
         }
 
         public void RestoreSnapZoom()
@@ -641,7 +636,7 @@ namespace MSR.CVE.BackMaker
             {
                 if (is_dragging)
                 {
-                    Point diff = new Point(e.X - drag_origin.X, e.Y - drag_origin.Y);
+                    var diff = new Point(e.X - drag_origin.X, e.Y - drag_origin.Y);
                     imminentAction.Dragged(diff);
                     Invalidate();
                     drag_origin = new Point(e.X, e.Y);
@@ -670,8 +665,8 @@ namespace MSR.CVE.BackMaker
         {
             if (baseLayer != null)
             {
-                Point point = ScreenCenter();
-                Point offsetInPixels = new Point(point.X - e.Location.X, point.Y - e.Location.Y);
+                var point = ScreenCenter();
+                var offsetInPixels = new Point(point.X - e.Location.X, point.Y - e.Location.Y);
                 center().setPosition(CoordinateSystemUtilities.GetZoomedView(GetCoordinateSystem(),
                     GetCoordinateSystem().GetTranslationInLatLon(center().llz, offsetInPixels),
                     1));
@@ -723,8 +718,8 @@ namespace MSR.CVE.BackMaker
 
         public ImageRef MessageImage(string message, Size tileSize)
         {
-            GDIBigLockedImage gDIBigLockedImage = new GDIBigLockedImage(tileSize, "ViewerControl-MessageImage");
-            Graphics graphics = gDIBigLockedImage.IPromiseIAmHoldingGDISLockSoPleaseGiveMeTheGraphics();
+            var gDIBigLockedImage = new GDIBigLockedImage(tileSize, "ViewerControl-MessageImage");
+            var graphics = gDIBigLockedImage.IPromiseIAmHoldingGDISLockSoPleaseGiveMeTheGraphics();
             Brush brush = new SolidBrush(Color.LightGray);
             graphics.FillRectangle(brush, 0, 0, tileSize.Width, tileSize.Height);
             graphics.DrawString(message,
@@ -740,8 +735,8 @@ namespace MSR.CVE.BackMaker
 
         private PointF MapPositionToPoint(LatLon pos)
         {
-            Point translationInPixels = GetCoordinateSystem().GetTranslationInPixels(center().llz, pos);
-            PointF result = new PointF(Width / 2 + translationInPixels.X,
+            var translationInPixels = GetCoordinateSystem().GetTranslationInPixels(center().llz, pos);
+            var result = new PointF(Width / 2 + translationInPixels.X,
                 Height / 2 + translationInPixels.Y);
             return result;
         }
@@ -752,24 +747,24 @@ namespace MSR.CVE.BackMaker
             e.Graphics.CompositingMode = CompositingMode.SourceOver;
             string text = pav.pinId.ToString();
             outlinePen.MiterLimit = 2f;
-            SizeF size = new SizeF(3f, 3f);
-            PointF pointF = MapPositionToPoint(pav.position.pinPosition.latlon);
+            var size = new SizeF(3f, 3f);
+            var pointF = MapPositionToPoint(pav.position.pinPosition.latlon);
             if (!RectangleF.Inflate(e.ClipRectangle, 100f, 100f).Contains(pointF))
             {
                 return;
             }
 
-            SizeF sizeF = e.Graphics.MeasureString(text, pinFont);
+            var sizeF = e.Graphics.MeasureString(text, pinFont);
             double num = 24.0;
             double num2 = 3.0;
             int num3 = 3;
-            RectangleF layoutRectangle = new RectangleF(pointF.X - sizeF.Width / 2f,
+            var layoutRectangle = new RectangleF(pointF.X - sizeF.Width / 2f,
                 (float)(pointF.Y - sizeF.Height / 2f - num),
                 sizeF.Width,
                 sizeF.Height);
-            RectangleF rectangleF = new RectangleF(layoutRectangle.Location, layoutRectangle.Size);
+            var rectangleF = new RectangleF(layoutRectangle.Location, layoutRectangle.Size);
             rectangleF.Inflate(size);
-            PointF[] points = new[]
+            var points = new[]
             {
                 pointF, new PointF((float)(pointF.X - num2), rectangleF.Bottom),
                 new PointF(rectangleF.Left + num3, rectangleF.Bottom),
@@ -804,15 +799,15 @@ namespace MSR.CVE.BackMaker
         private void DrawErrorPosition(PositionAssociationView pav, DisplayablePosition.ErrorMarker errorMarker,
             Pen pen, Brush brush, PaintSpecification e)
         {
-            ErrorPosition errorPosition = pav.position.GetErrorPosition(errorMarker);
+            var errorPosition = pav.position.GetErrorPosition(errorMarker);
             if (errorPosition == null)
             {
                 return;
             }
 
-            PointF pointF = MapPositionToPoint(pav.position.pinPosition.latlon);
-            PointF pointF2 = MapPositionToPoint(errorPosition.latlon);
-            RectangleF rectangleF = new RectangleF(e.ClipRectangle.X - e.ClipRectangle.Width * 2,
+            var pointF = MapPositionToPoint(pav.position.pinPosition.latlon);
+            var pointF2 = MapPositionToPoint(errorPosition.latlon);
+            var rectangleF = new RectangleF(e.ClipRectangle.X - e.ClipRectangle.Width * 2,
                 e.ClipRectangle.Y - e.ClipRectangle.Height * 2,
                 e.ClipRectangle.Width * 5,
                 e.ClipRectangle.Height * 5);
@@ -858,11 +853,11 @@ namespace MSR.CVE.BackMaker
                 return;
             }
 
-            InterestList interestList = activeTiles;
+            var interestList = activeTiles;
             activeTiles = new InterestList();
             e.ResetClip();
             e.Graphics.FillRectangle(new SolidBrush(Color.LightPink), new Rectangle(new Point(0, 0), e.Size));
-            List<PaintKit> list = new List<PaintKit>();
+            var list = new List<PaintKit>();
             list.AddRange(AssembleLayer(e, llz, baseLayer, 0));
             int num = 1;
             foreach (IDisplayableSource current in alphaLayers)
@@ -882,11 +877,11 @@ namespace MSR.CVE.BackMaker
 
             if (MapDrawingOption.IsEnabled(ShowCrosshairs))
             {
-                Pen pen = new Pen(Color.Yellow);
-                Pen[] array = new[] {pen, new Pen(Color.Black) {DashStyle = DashStyle.Dash}};
+                var pen = new Pen(Color.Yellow);
+                var array = new[] {pen, new Pen(Color.Black) {DashStyle = DashStyle.Dash}};
                 for (int i = 0; i < array.Length; i++)
                 {
-                    Pen pen2 = array[i];
+                    var pen2 = array[i];
                     e.Graphics.DrawLine(pen2, 0, Size.Height / 2, Size.Width, Size.Height / 2);
                     e.Graphics.DrawLine(pen2, Size.Width / 2, 0, Size.Width / 2, Size.Height);
                 }
@@ -894,7 +889,7 @@ namespace MSR.CVE.BackMaker
 
             if (MapDrawingOption.IsEnabled(ShowPushPins) && pinList != null)
             {
-                List<PositionAssociationView> list2 = new List<PositionAssociationView>();
+                var list2 = new List<PositionAssociationView>();
                 list2.AddRange(pinList);
                 list2.Sort(delegate(PositionAssociationView p0, PositionAssociationView p1)
                 {
@@ -924,16 +919,13 @@ namespace MSR.CVE.BackMaker
                         return 1;
                     }
                 });
-                foreach (PositionAssociationView current2 in list2)
+                foreach (var current2 in list2)
                 {
                     DrawMarker(current2, e);
                 }
             }
 
-            if (interestList != null)
-            {
-                interestList.Dispose();
-            }
+            interestList?.Dispose();
 
             if (tilesRequired == 0 || tilesAvailable == tilesRequired)
             {
@@ -950,32 +942,26 @@ namespace MSR.CVE.BackMaker
         private void PaintKits(Graphics g, List<PaintKit> kits)
         {
             g.CompositingMode = CompositingMode.SourceOver;
-            foreach (PaintKit current in kits)
+            foreach (var (current, current2) in kits.SelectMany(current => current.meatyParts.Select(current2 => (current, current2))))
             {
-                foreach (TilePaintClosure current2 in current.meatyParts)
-                {
-                    current2.PaintTile(g, current.paintLocation);
-                    current2.Dispose();
-                }
+                current2.PaintTile(g, current.paintLocation);
+                current2.Dispose();
             }
 
             g.ResetClip();
-            foreach (PaintKit current3 in kits)
+            foreach (var (current3, current4) in kits.SelectMany(current3 => current3.annotations.Select(current4 => (current3, current4))))
             {
-                foreach (TilePaintClosure current4 in current3.annotations)
-                {
-                    current4.PaintTile(g, current3.paintLocation);
-                    current4.Dispose();
-                }
+                current4.PaintTile(g, current3.paintLocation);
+                current4.Dispose();
             }
         }
 
         private List<PaintKit> AssembleLayer(PaintSpecification e, LatLonZoom llz, IDisplayableSource tileSource,
             int stackOrder)
         {
-            List<PaintKit> list = new List<PaintKit>();
-            CoordinateSystemIfc defaultCoordinateSystem = tileSource.GetDefaultCoordinateSystem();
-            TileDisplayDescriptorArray tileArrayDescriptor =
+            var list = new List<PaintKit>();
+            var defaultCoordinateSystem = tileSource.GetDefaultCoordinateSystem();
+            var tileArrayDescriptor =
                 defaultCoordinateSystem.GetTileArrayDescriptor(llz, e.Size);
             AsyncRef asyncRef;
             try
@@ -985,14 +971,10 @@ namespace MSR.CVE.BackMaker
             }
             catch (Exception ex)
             {
-                MessagePainter item = new MessagePainter(stackOrder * 12,
+                var item = new MessagePainter(stackOrder * 12,
                     BigDebugKnob.theKnob.debugFeaturesEnabled ? ex.ToString() : "X",
                     stackOrder == 0);
-                foreach (TileDisplayDescriptor current in tileArrayDescriptor)
-                {
-                    list.Add(new PaintKit(current.paintLocation) {annotations = {item}});
-                }
-
+                list.AddRange(tileArrayDescriptor.Select(current => new PaintKit(current.paintLocation) { annotations = { item } }));
                 return list;
             }
 
@@ -1003,9 +985,9 @@ namespace MSR.CVE.BackMaker
                 asyncRef.SetInterest(524290);
             }
 
-            if ((ShowSourceCrop == null || ShowSourceCrop.Enabled) && asyncRef.present is IBoundsProvider)
+            if ((ShowSourceCrop == null || ShowSourceCrop.Enabled) && asyncRef.present is IBoundsProvider provider)
             {
-                clipRegion = ((IBoundsProvider)asyncRef.present).GetRenderRegion().GetClipRegion(
+                clipRegion = provider.GetRenderRegion().GetClipRegion(
                     defaultCoordinateSystem.GetUnclippedMapWindow(center().llz, e.Size),
                     center().llz.zoom,
                     defaultCoordinateSystem);
@@ -1014,9 +996,9 @@ namespace MSR.CVE.BackMaker
 
             new PersistentInterest(asyncRef);
             int num = 0;
-            foreach (TileDisplayDescriptor current2 in tileArrayDescriptor)
+            foreach (var current2 in tileArrayDescriptor)
             {
-                PaintKit paintKit = new PaintKit(current2.paintLocation);
+                var paintKit = new PaintKit(current2.paintLocation);
                 D.Sayf(10, "count {0} tdd {1}", new object[] {num, current2.tileAddress});
                 num++;
                 if (e.SynchronousTiles)
@@ -1027,16 +1009,16 @@ namespace MSR.CVE.BackMaker
                 }
 
                 bool arg_1F5_0 = e.SynchronousTiles;
-                Present present = tileSource.GetImagePrototype(null, (FutureFeatures)15)
+                var present = tileSource.GetImagePrototype(null, (FutureFeatures)15)
                     .Curry(new ParamDict(new object[] {TermName.TileAddress, current2.tileAddress}))
                     .Realize("ViewerControl.PaintLayer imageAsyncRef");
-                AsyncRef asyncRef2 = (AsyncRef)present;
-                Rectangle rectangle = Rectangle.Intersect(e.ClipRectangle, current2.paintLocation);
+                var asyncRef2 = (AsyncRef)present;
+                var rectangle = Rectangle.Intersect(e.ClipRectangle, current2.paintLocation);
                 int interest = rectangle.Height * rectangle.Width + 524296;
                 asyncRef2.SetInterest(interest);
                 if (asyncRef2.present == null)
                 {
-                    AsyncNotifier @object = new AsyncNotifier(this);
+                    var @object = new AsyncNotifier(this);
                     asyncRef2.AddCallback(@object.AsyncRecordComplete);
                 }
 
@@ -1056,7 +1038,7 @@ namespace MSR.CVE.BackMaker
                 if (asyncRef2.present != null && asyncRef2.present is ImageRef)
                 {
                     flag = false;
-                    ImageRef imageRef = (ImageRef)asyncRef2.present.Duplicate("tpc");
+                    var imageRef = (ImageRef)asyncRef2.present.Duplicate("tpc");
                     paintKit.meatyParts.Add(new ImagePainter(imageRef, clipRegion));
                 }
                 else
@@ -1067,11 +1049,11 @@ namespace MSR.CVE.BackMaker
                     }
                     else
                     {
-                        if (asyncRef2.present != null && asyncRef2.present is PresentFailureCode)
+                        if (asyncRef2.present != null && asyncRef2.present is PresentFailureCode code)
                         {
                             flag = false;
-                            PresentFailureCode presentFailureCode = (PresentFailureCode)asyncRef2.present;
-                            MessagePainter item2 = new MessagePainter(stackOrder * 12,
+                            var presentFailureCode = code;
+                            var item2 = new MessagePainter(stackOrder * 12,
                                 BigDebugKnob.theKnob.debugFeaturesEnabled
                                     ? StringUtils.breakLines(presentFailureCode.ToString())
                                     : "X",
@@ -1081,7 +1063,7 @@ namespace MSR.CVE.BackMaker
                         else
                         {
                             flag = true;
-                            MessagePainter item3 =
+                            var item3 =
                                 new MessagePainter(stackOrder * 12, stackOrder.ToString(), stackOrder == 0);
                             if (stackOrder == 0)
                             {
@@ -1155,15 +1137,12 @@ namespace MSR.CVE.BackMaker
         {
             try
             {
-                foreach (DisplayableSourceCache current in alphaLayers)
+                foreach (var current in alphaLayers)
                 {
                     current.Flush();
                 }
 
-                if (baseLayer != null)
-                {
-                    baseLayer.Flush();
-                }
+                baseLayer?.Flush();
 
                 Invalidate();
             }
@@ -1186,64 +1165,52 @@ namespace MSR.CVE.BackMaker
         public Pixel GetBaseLayerCenterPixel()
         {
             IDisplayableSource displayableSource = baseLayer;
-            CoordinateSystemIfc defaultCoordinateSystem = displayableSource.GetDefaultCoordinateSystem();
-            TileDisplayDescriptorArray tileArrayDescriptor =
+            var defaultCoordinateSystem = displayableSource.GetDefaultCoordinateSystem();
+            var tileArrayDescriptor =
                 defaultCoordinateSystem.GetTileArrayDescriptor(center().llz, Size);
             int num = Size.Width / 2;
             int num2 = Size.Height / 2;
-            foreach (TileDisplayDescriptor current in tileArrayDescriptor)
+            foreach (var current in tileArrayDescriptor)
             {
-                Rectangle paintLocation = current.paintLocation;
-                if (paintLocation.Left <= num)
+                if (current.paintLocation.Left > num || current.paintLocation.Right <= num || current.paintLocation.Top > num2 || current.paintLocation.Bottom <= num2)
                 {
-                    Rectangle paintLocation2 = current.paintLocation;
-                    if (paintLocation2.Right > num)
-                    {
-                        Rectangle paintLocation3 = current.paintLocation;
-                        if (paintLocation3.Top <= num2)
-                        {
-                            Rectangle paintLocation4 = current.paintLocation;
-                            if (paintLocation4.Bottom > num2)
-                            {
-                                int arg_D1_0 = num;
-                                Rectangle paintLocation5 = current.paintLocation;
-                                int x = arg_D1_0 - paintLocation5.Left;
-                                int arg_E6_0 = num2;
-                                Rectangle paintLocation6 = current.paintLocation;
-                                int y = arg_E6_0 - paintLocation6.Top;
-                                Present present = displayableSource.GetImagePrototype(null, (FutureFeatures)19)
-                                    .Curry(new ParamDict(new object[] {TermName.TileAddress, current.tileAddress}))
-                                    .Realize("ViewerControl.GetBaseLayerCenterPixel imageRef");
-                                Pixel result;
-                                if (!(present is ImageRef))
-                                {
-                                    result = new UndefinedPixel();
-                                    return result;
-                                }
-
-                                ImageRef imageRef = (ImageRef)present;
-                                GDIBigLockedImage image;
-                                Monitor.Enter(image = imageRef.image);
-                                Pixel pixel2;
-                                try
-                                {
-                                    Image image2 = imageRef.image.IPromiseIAmHoldingGDISLockSoPleaseGiveMeTheImage();
-                                    Bitmap bitmap = (Bitmap)image2;
-                                    Color pixel = bitmap.GetPixel(x, y);
-                                    pixel2 = new Pixel(pixel);
-                                }
-                                finally
-                                {
-                                    Monitor.Exit(image);
-                                }
-
-                                imageRef.Dispose();
-                                result = pixel2;
-                                return result;
-                            }
-                        }
-                    }
+                    continue;
                 }
+
+                int arg_D1_0 = num;
+                int x = arg_D1_0 - current.paintLocation.Left;
+                int arg_E6_0 = num2;
+                int y = arg_E6_0 - current.paintLocation.Top;
+                var present = displayableSource.GetImagePrototype(null, (FutureFeatures)19)
+                    .Curry(new ParamDict(new object[] { TermName.TileAddress, current.tileAddress }))
+                    .Realize("ViewerControl.GetBaseLayerCenterPixel imageRef");
+                Pixel result;
+                if (!(present is ImageRef))
+                {
+                    result = new UndefinedPixel();
+                    return result;
+                }
+
+                var imageRef = (ImageRef)present;
+                GDIBigLockedImage image;
+                Monitor.Enter(image = imageRef.image);
+                Pixel pixel2;
+
+                try
+                {
+                    var image2 = imageRef.image.IPromiseIAmHoldingGDISLockSoPleaseGiveMeTheImage();
+                    var bitmap = (Bitmap)image2;
+                    var pixel = bitmap.GetPixel(x, y);
+                    pixel2 = new Pixel(pixel);
+                }
+                finally
+                {
+                    Monitor.Exit(image);
+                }
+
+                imageRef.Dispose();
+                result = pixel2;
+                return result;
             }
 
             return new UndefinedPixel();

@@ -167,7 +167,7 @@ namespace GMap.NET.Internals
 #endif
                 }
             }
-            catch (Exception ex) { }
+            catch (Exception) { }
         }
 
         public void ReleaseWriterLock()
@@ -190,7 +190,7 @@ namespace GMap.NET.Internals
 #endif
                 }
             }
-            catch (Exception ex) { }
+            catch (Exception) { }
         }
 
         #region IDisposable Members

@@ -47,9 +47,9 @@ namespace Demo.Geocoding
             label3.Text = "Falla: " + Falla;
 
             string sLine = "";
-            List<string> arrText = new List<string>();
+            var arrText = new List<string>();
 
-            using (StreamReader objReader = new StreamReader("D:\\DireccionPrueba10012019.txt"))
+            using (var objReader = new StreamReader("D:\\DireccionPrueba10012019.txt"))
             {
                 while (sLine != null)
                 {
@@ -128,21 +128,23 @@ namespace Demo.Geocoding
 
         public Task ProcesarDatos(string Country, string Department, string City, string Address)
         {
-            Task task = Task.Run(() =>
+            var task = Task.Run(() =>
             {
-                GeoCoderStatusCode status = GeoCoderStatusCode.UNKNOWN_ERROR;
+                var status = GeoCoderStatusCode.UNKNOWN_ERROR;
 
                 string fulladress = (string.IsNullOrEmpty(Country) ? "" : Country + ", ") +
                                     (string.IsNullOrEmpty(Department) ? "" : Department + ", ") +
                                     (string.IsNullOrEmpty(City) ? "" : City + ", " + Address);
 
-                PointLatLng? pos = GMapProviders.GoogleMap.GetPoint(fulladress, out status);
+                var pos = GMapProviders.GoogleMap.GetPoint(fulladress, out status);
 
                 if (pos != null && status == GeoCoderStatusCode.OK)
                 {
-                    GMapMarker myCity = new GMarkerGoogle(pos.Value, GMarkerGoogleType.green_small);
-                    myCity.ToolTipText = Address;
-                    myCity.ToolTipMode = MarkerTooltipMode.OnMouseOver;
+                    GMapMarker myCity = new GMarkerGoogle(pos.Value, GMarkerGoogleType.green_small)
+                    {
+                        ToolTipText = Address,
+                        ToolTipMode = MarkerTooltipMode.OnMouseOver
+                    };
                     objects.Markers.Add(myCity);
 
                     Exito += 1;
@@ -165,19 +167,19 @@ namespace Demo.Geocoding
 
         void AddLocation(string Country, string Department, string City, string Address)
         {
-            GeoCoderStatusCode status = GeoCoderStatusCode.UNKNOWN_ERROR;
-
             string fulladress = (string.IsNullOrEmpty(Country) ? "" : Country + ", ") +
                                 (string.IsNullOrEmpty(Department) ? "" : Department + ", ") +
                                 (string.IsNullOrEmpty(City) ? "" : City + ", " + Address);
 
-            PointLatLng? pos = GMapProviders.GoogleMap.GetPoint(fulladress, out status);
+            var pos = GMapProviders.GoogleMap.GetPoint(fulladress, out var status);
 
             if (pos != null && status == GeoCoderStatusCode.OK)
             {
-                GMapMarker myCity = new GMarkerGoogle(pos.Value, GMarkerGoogleType.green_small);
-                myCity.ToolTipText = Address;
-                myCity.ToolTipMode = MarkerTooltipMode.OnMouseOver;
+                GMapMarker myCity = new GMarkerGoogle(pos.Value, GMarkerGoogleType.green_small)
+                {
+                    ToolTipText = Address,
+                    ToolTipMode = MarkerTooltipMode.OnMouseOver
+                };
                 objects.Markers.Add(myCity);
 
                 Exito += 1;

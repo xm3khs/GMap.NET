@@ -63,7 +63,7 @@ namespace BackMaker
                 try
                 {
                     BuildConfig.Initialize();
-                    if (BuildConfig.theConfig.buildConfiguration == "Broken")
+                    if (BuildConfig.theConfig == null || BuildConfig.theConfig.buildConfiguration == "Broken")
                     {
                         throw new ConfigurationException(
                             "MapCruncher configuration is broken. Please reinstall MapCruncher.");

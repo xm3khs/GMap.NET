@@ -302,7 +302,7 @@ namespace MSR.CVE.BackMaker
                 }
 
                 var xmlNode = xmlDocument.GetElementsByTagName("Build")[0];
-                if (xmlNode.Attributes == null)
+                if (xmlNode?.Attributes == null)
                 {
                     return;
                 }

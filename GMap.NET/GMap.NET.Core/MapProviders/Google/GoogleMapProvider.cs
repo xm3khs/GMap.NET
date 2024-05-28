@@ -228,7 +228,6 @@ namespace GMap.NET.MapProviders
         internal void GetSecureWords(GPoint pos, out string sec1, out string sec2)
         {
             sec1 = string.Empty; // after &x=...
-            sec2 = string.Empty; // after &zoom=...
             int seclen = (int)(pos.X * 3 + pos.Y) % 8;
             sec2 = SecureWord.Substring(0, seclen);
 
@@ -352,9 +351,9 @@ namespace GMap.NET.MapProviders
                         ret.ErrorCode = routeResult.error.code;
                         ret.ErrorMessage = routeResult.error.message;
 
-                        RouteStatusCode code;
 
-                        if (Enum.TryParse(routeResult.error.status, false, out code))
+                        if (Enum.TryParse(routeResult.error.status, false, out
+                        RouteStatusCode code))
                             ret.Status = code;
                     }
                 }
@@ -391,8 +390,7 @@ namespace GMap.NET.MapProviders
 
         public PointLatLng? GetPoint(string keywords, out GeoCoderStatusCode status)
         {
-            List<PointLatLng> pointList;
-            status = GetPoints(keywords, out pointList);
+            status = GetPoints(keywords, out var pointList);
             return pointList != null && pointList.Count > 0 ? pointList[0] : (PointLatLng?)null;
         }
 
@@ -425,8 +423,7 @@ namespace GMap.NET.MapProviders
 
         public Placemark? GetPlacemark(PointLatLng location, out GeoCoderStatusCode status)
         {
-            List<Placemark> pointList;
-            status = GetPlacemarks(location, out pointList);
+            status = GetPlacemarks(location, out var pointList);
             return pointList != null && pointList.Count > 0 ? pointList[0] : (Placemark?)null;
         }
 
@@ -1143,9 +1140,10 @@ namespace GMap.NET.MapProviders
                 // parse values
                 if (roadsResult != null)
                 {
-                    ret = new MapRoute("Route");
-
-                    ret.WarningMessage = roadsResult.warningMessage;
+                    ret = new MapRoute("Route")
+                    {
+                        WarningMessage = roadsResult.warningMessage
+                    };
 
                     if (roadsResult.error == null)
                     {
@@ -1166,9 +1164,7 @@ namespace GMap.NET.MapProviders
                         ret.ErrorCode = roadsResult.error.code;
                         ret.ErrorMessage = roadsResult.error.message;
 
-                        RouteStatusCode code;
-
-                        if (Enum.TryParse(roadsResult.error.status, false, out code))
+                        if (Enum.TryParse(roadsResult.error.status, false, out RouteStatusCode code))
                             ret.Status = code;
                     }
                 }

@@ -15,8 +15,8 @@ namespace ConsoleApplication
     class test
     {
         //const int batchSize = 3;
-        const int logSize = 8; //1024 * 8;
-        readonly PointLatLng[] gpsLog = new PointLatLng[logSize];
+        const int LogSize = 8; //1024 * 8;
+        readonly PointLatLng[] gpsLog = new PointLatLng[LogSize];
         int logCounter;
         bool logFull;
 
@@ -53,7 +53,7 @@ namespace ConsoleApplication
 
             if (logFull)
             {
-                for (int i = logSize - 1, start = logCounter; i >= start; i--)
+                for (int i = LogSize - 1, start = logCounter; i >= start; i--)
                 {
                     yield return gpsLog[i];
                 }
@@ -63,7 +63,7 @@ namespace ConsoleApplication
         public void AddToLogCurrentInfo(PointLatLng data)
         {
             gpsLog[logCounter++] = data;
-            if (logCounter == logSize)
+            if (logCounter == LogSize)
             {
                 logCounter = 0;
                 logFull = true;

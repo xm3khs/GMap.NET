@@ -106,9 +106,9 @@ namespace GMap.NET.Avalonia
         /// <summary>
         ///     The touch enabled property
         /// </summary>
-        public static readonly StyledProperty<bool> TouchEnabledProperty =
-            AvaloniaProperty.Register<GMapControl, bool>(
-                nameof(TouchEnabled));
+        //public static readonly StyledProperty<bool> TouchEnabledProperty =
+        //    AvaloniaProperty.Register<GMapControl, bool>(
+        //        nameof(TouchEnabled));
 
         /// <summary>
         ///     map zoom
@@ -383,12 +383,12 @@ namespace GMap.NET.Avalonia
         ///     is touch control enabled
         /// </summary>
         /// <value><c>true</c> if [touch enabled]; otherwise, <c>false</c>.</value>
-        [Obsolete("Touch Enabled is deprecated, please use MultiTouchEnabled")]
-        public bool TouchEnabled
-        {
-            get { return GetValue(TouchEnabledProperty); }
-            set { SetValue(TouchEnabledProperty, value); }
-        }
+        //[Obsolete("Touch Enabled is deprecated, please use MultiTouchEnabled")]
+        //public bool TouchEnabled
+        //{
+        //    get { return GetValue(TouchEnabledProperty); }
+        //    set { SetValue(TouchEnabledProperty, value); }
+        //}
 
         private readonly ScaleTransform _lastScaleTransform = new();
 
@@ -886,10 +886,10 @@ namespace GMap.NET.Avalonia
                     marker.Shape = shape;
                 }
             }
-            else
-            {
-                marker.Shape = null;
-            }
+            //else
+            //{
+            //    marker.Shape = null;
+            //}
         }
 
         private void ForceUpdateOverlays(System.Collections.IEnumerable items)
@@ -978,10 +978,12 @@ namespace GMap.NET.Avalonia
                             {
                                 if (!found)
                                     found = true;
+
                                 var imgRect = new Rect(_core.TileRect.X + 0.6,
                                     _core.TileRect.Y + 0.6,
                                     _core.TileRect.Width + 0.6,
                                     _core.TileRect.Height + 0.6);
+
                                 if (!img.IsParent)
                                 {
                                     g.DrawImage(img.Img, imgRect);
@@ -1039,6 +1041,7 @@ namespace GMap.NET.Avalonia
                                 {
                                     if (!found)
                                         found = true;
+
                                     using (g.PushClip(geometry.Rect))
                                     {
                                         g.DrawImage(img.Img, parentImgRect);
@@ -1331,10 +1334,10 @@ namespace GMap.NET.Avalonia
         /// </summary>
         private void UpdateRotationMatrix()
         {
-            var center = new Point(Bounds.Width / 2.0, Bounds.Height / 2.0);
-
             _rotationMatrix.Angle = -Bearing;
+
             //TODO: Avalonia not support Center X, Y
+            //var center = new Point(Bounds.Width / 2.0, Bounds.Height / 2.0);
             //_rotationMatrix.CenterY = center.Y;
             //_rotationMatrix.CenterX = center.X;
 

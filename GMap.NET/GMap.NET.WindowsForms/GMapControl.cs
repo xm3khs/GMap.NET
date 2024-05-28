@@ -495,10 +495,7 @@ namespace GMap.NET.WindowsForms
         /// </summary>
         public new void Invalidate()
         {
-            if (Core.Refresh != null)
-            {
-                Core.Refresh.Set();
-            }
+            Core.Refresh?.Set();
         }
 #endif
 
@@ -565,7 +562,7 @@ namespace GMap.NET.WindowsForms
 
         internal readonly Font CopyrightFont = new Font(FontFamily.GenericSansSerif, 7, FontStyle.Regular);
         internal readonly Font MissingDataFont = new Font(FontFamily.GenericSansSerif, 11, FontStyle.Bold);
-        Font ScaleFont = new Font(FontFamily.GenericSansSerif, 7, FontStyle.Regular);
+        readonly Font ScaleFont = new Font(FontFamily.GenericSansSerif, 7, FontStyle.Regular);
         internal readonly StringFormat CenterFormat = new StringFormat();
         internal readonly StringFormat BottomFormat = new StringFormat();
         readonly ImageAttributes _tileFlipXYAttributes = new ImageAttributes();
@@ -956,8 +953,6 @@ namespace GMap.NET.WindowsForms
         /// <returns></returns>
         public RectLatLng? GetRectOfRoute(MapRoute route)
         {
-            RectLatLng? ret = null;
-
             double left = double.MaxValue;
             double top = double.MinValue;
             double right = double.MinValue;
@@ -995,8 +990,7 @@ namespace GMap.NET.WindowsForms
                 }
             }
 
-            ret = RectLatLng.FromLTRB(left, top, right, bottom);
-
+            RectLatLng? ret = RectLatLng.FromLTRB(left, top, right, bottom);
             return ret;
         }
 
@@ -1085,12 +1079,10 @@ namespace GMap.NET.WindowsForms
             double dLong = endLong - startLong;
 
             double dPhi = Math.Log(Math.Tan(endLat / 2.0 + Math.PI / 4.0) / Math.Tan(startLat / 2.0 + Math.PI / 4.0));
-            if (!(Math.Abs(dLong) > Math.PI))
+            if (Math.Abs(dLong) > Math.PI)
             {
-                return Math.Round((degrees(Math.Atan2(dLong, dPhi)) + 360.0) % 360.0, 2);
+                dLong = dLong > 0.0 ? -(2.0 * Math.PI - dLong) : 2.0 * Math.PI + dLong;
             }
-
-            dLong = dLong > 0.0 ? -(2.0 * Math.PI - dLong) : 2.0 * Math.PI + dLong;
 
             return Math.Round((degrees(Math.Atan2(dLong, dPhi)) + 360.0) % 360.0, 2);
         }
@@ -1105,9 +1097,11 @@ namespace GMap.NET.WindowsForms
         public bool IsPointInBoundary(List<PointLatLng> points, string lat, string lng)
         {
             var polyOverlay = new GMapOverlay();
-            var polygon = new GMapPolygon(points, "routePloygon");
-            polygon.Fill = new SolidBrush(Color.FromArgb(50, Color.Red));
-            polygon.Stroke = new Pen(Color.Red, 1);
+            var polygon = new GMapPolygon(points, "routePloygon")
+            {
+                Fill = new SolidBrush(Color.FromArgb(50, Color.Red)),
+                Stroke = new Pen(Color.Red, 1)
+            };
             polyOverlay.Polygons.Add(polygon);
             var pnt = new PointLatLng(double.Parse(lat), double.Parse(lng));
             return polygon.IsInside(pnt);

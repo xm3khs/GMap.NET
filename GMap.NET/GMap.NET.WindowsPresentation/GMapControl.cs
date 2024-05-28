@@ -25,6 +25,8 @@ namespace GMap.NET.WindowsPresentation
     /// </summary>
     public partial class GMapControl : ItemsControl, Interface, IDisposable
     {
+        private static double PixelsPerDip = 1;
+
         #region DependencyProperties and related stuff
 
         /// <summary>
@@ -252,6 +254,9 @@ namespace GMap.NET.WindowsPresentation
                         new Typeface("GenericSansSerif"),
                         9,
                         Brushes.Navy);
+                        //null,
+                        //TextFormattingMode.Ideal,
+                        //PixelsPerDip);
                 }
 
                 if (!map._core.IsStarted || !map._core.ZoomToArea || viewarea == RectLatLng.Empty || viewarea == map.ViewArea)
@@ -478,6 +483,9 @@ namespace GMap.NET.WindowsPresentation
                 new Typeface("Arial"),
                 16,
                 Brushes.Blue);
+                //null,
+                //TextFormattingMode.Ideal,
+                //PixelsPerDip);
 
         /// <summary>
         ///     map zooming type for mouse wheel
@@ -1087,7 +1095,6 @@ namespace GMap.NET.WindowsPresentation
                                     g.PushClip(geometry);
                                     g.DrawImage(img.Img, parentImgRect);
                                     g.Pop();
-                                    geometry = null;
                                 }
                             }
                         }
@@ -1142,8 +1149,6 @@ namespace GMap.NET.WindowsPresentation
                                         g.Pop();
                                     }
                                 }
-
-                                geometry = null;
                             }
 
                             #endregion
@@ -1173,6 +1178,9 @@ namespace GMap.NET.WindowsPresentation
                                         _tileTypeface,
                                         14,
                                         Brushes.Red)
+                                        //null,
+                                        //TextFormattingMode.Ideal,
+                                        //PixelsPerDip)
                                     {
                                         MaxTextWidth = _core.TileRect.Width - 11
                                     };
@@ -1207,6 +1215,9 @@ namespace GMap.NET.WindowsPresentation
                                 _tileTypeface,
                                 16,
                                 Brushes.Red)
+                                //null,
+                                //TextFormattingMode.Ideal,
+                                //PixelsPerDip)
                             {
                                 MaxTextWidth = _core.TileRect.Width
                             };
@@ -1224,6 +1235,9 @@ namespace GMap.NET.WindowsPresentation
                                 _tileTypeface,
                                 16,
                                 Brushes.Red)
+                                //null,
+                                //TextFormattingMode.Ideal,
+                                //PixelsPerDip)
                             {
                                 MaxTextWidth = _core.TileRect.Width
                             };
@@ -2198,13 +2212,14 @@ namespace GMap.NET.WindowsPresentation
         {
             base.OnManipulationStarted(e);
 
-            if (MultiTouchEnabled)
+            if (!MultiTouchEnabled)
             {
-                _core.MouseDown.X = 0;
-                _core.MouseDown.Y = 0;
-                _core.touchCurrent.X = 0;
-                _core.touchCurrent.Y = 0;
+                return;
             }
+            _core.MouseDown.X = 0;
+            _core.MouseDown.Y = 0;
+            _core.touchCurrent.X = 0;
+            _core.touchCurrent.Y = 0;
         }
 
         /// <summary>
@@ -2213,7 +2228,6 @@ namespace GMap.NET.WindowsPresentation
         /// <param name="deltaPoint">The delta point.</param>
         protected virtual void SingleTouchPanMap(Point deltaPoint)
         {
-            // redundent check in case this is invoked outside of the manipulation events
             if (!MultiTouchEnabled)
             {
                 return;
@@ -2245,6 +2259,7 @@ namespace GMap.NET.WindowsPresentation
                 Cursor = Cursors.SizeAll;
                 Mouse.Capture(this);
             }
+
             if (!BoundsOfMap.HasValue || BoundsOfMap.Value.Contains(Position))
             {
                 deltaPoint = ApplyRotationInversion(deltaPoint.X, deltaPoint.Y);
@@ -2254,6 +2269,7 @@ namespace GMap.NET.WindowsPresentation
                 {
                     _core.Drag(_core.MouseCurrent);
                 }
+
                 if (IsRotated)
                 {
                     ForceUpdateOverlays();
@@ -2263,6 +2279,7 @@ namespace GMap.NET.WindowsPresentation
                     UpdateMarkersOffset();
                 }
             }
+
             InvalidateVisual();
         }
 
@@ -2293,7 +2310,7 @@ namespace GMap.NET.WindowsPresentation
                 {
                     if (IsDragging)
                     {
-                        _onMouseUpTimestamp = e.Timestamp & Int32.MaxValue;
+                        _onMouseUpTimestamp = e.Timestamp & int.MaxValue;
                         IsDragging = false;
                         Debug.WriteLine("IsDragging = " + IsDragging);
                         Cursor = _cursorBefore;

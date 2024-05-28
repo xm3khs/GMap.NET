@@ -204,7 +204,7 @@ namespace GMap.NET.Avalonia
             var s = Shape as IDisposable;
             s?.Dispose();
 
-            Shape = null;
+            //Shape = null;
         }
 
         /// <summary>
